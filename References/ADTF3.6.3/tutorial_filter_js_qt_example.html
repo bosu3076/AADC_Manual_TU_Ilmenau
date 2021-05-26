@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="This guide explains how to create ADTF filters which display QML based user interfaces">
+    <title>ADTF3 Guides - QtQuick Example</title>
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/css/bootstrap.min.css" integrity="sha384-/Y6pD6FV/Vv2HJnA6t+vslU6fwYXjCFtcEpHbNJ0lyAFsXTsjBbfaDjzALeQsN6M" crossorigin="anonymous">
+    <!-- Prism Syntax Highlighting CSS -->
+    <link rel="stylesheet" href="prism/css/prism.css">
+  </head>
+  <body>
+	<div class="container">
+
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+      <a class="navbar-brand" href="#">ADTF3 Guides</a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+          <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      </div>
+    </nav>
+
+		<ol class="breadcrumb">
+			<li class="breadcrumb-item"><a href="index.html">Home</a></li>
+			<li class="breadcrumb-item active">Javascript QtQuick Example</li>
+		</ol>
+        
+		<h2>Javascript QtQuick Example</h2>
+
+    <p>
+      This guide shows an JavaScript version of the previously shown C++ based implementation
+      of the <a href="tutorial_filter_processor.html">Data Processor</a>
+      and the <a href="tutorial_filter_generator.html">Data Generator</a>. In this tutorial the
+      data generation part is realized with two <a href="tutorial_filter_javascript.html">Javascript Filters</a>
+      and the processing part is realized with a <a href="tutorial_filter_qtquick.html">QtQuick Filter</a>.
+      The functional logic of this example is split into the following parts:
+    </p>
+		<ul>
+			<li><strong>Velocity Data Generator</strong> produces velocity data samples</li>
+			<li><strong>Yaw Rate Data Generator</strong> produces yaw rate data samples</li>
+			<li><strong>Data Processor</strong> receives velocity/yaw rate data samples and calculates/visualizes the respective kappa values</li>
+    </ul>
+
+    <h3>Data Generator</h3>
+
+    <p>
+      Both data generators are based on <a href="../adtf_html/page_javascript_filter.html#section_javascript_filter">JavaScript Filters</a>.
+      The first one creates velocity values ranging from 5 to 100,
+      the second filter creates yaw rate values ranging from 3 to 20.
+    </p>
+
+<pre>
+  <code class="language-javascript">
+// velocity data sample generator
+
+var velocity_type = types.createDefinition(&quot;velocity&quot;)
+                    .add(&quot;value&quot;, &quot;tFloat32&quot;)
+var output = filter.createOutputPin(&quot;velocity&quot;, velocity_type)
+
+var velo = 10
+var delta = 5
+
+filter.createRunner(&quot;generate_velocity&quot;).trigger.connect(function(timestamp)
+{
+    velo += delta
+    if(velo &lt; 10 || velo &gt; 95){
+        delta *= -1;
+    }
+
+    output.write(timestamp, { value: velo })
+})
+
+  </code>
+</pre>
+
+<pre>
+  <code class="language-javascript">
+// yaw rate data sample generator
+
+var yaw_rate_type = types.createDefinition(&quot;yaw_rate&quot;)
+                    .add(&quot;value&quot;, &quot;tFloat32&quot;)
+var output = filter.createOutputPin(&quot;yaw_rate&quot;, yaw_rate_type)
+
+var yaw = 6
+var delta = 3
+
+filter.createRunner(&quot;generate_yaw_rate&quot;).trigger.connect(function(timestamp)
+{
+    yaw += delta
+    if(yaw &lt; 6 || yaw &gt; 17){
+        delta *= -1;
+    }
+
+    output.write(timestamp, { value: yaw })
+})
+
+  </code>
+</pre>
+
+    <h3>Display</h3>
+    <p>
+      The Display uses a <a href="../adtf_html/page_javascript_filter.html#section_qtquick_filter">QtQuick Filter</a> to generate three different kinds of displays.
+      It receives velocity and yaw rate data samples and calculates the corresponding kappa values.
+      The resulting kappa values are visualized using QtQuick elements which plot the data in three different charts.
+      Have a look at the comments in the code as well.
+      <ul>
+        <li>a bar chart</li>
+        <li>a time chart</li>
+        <li>a 3D view</li>
+      </ul>
+    </p>
+
+<pre>
+  <code class="language-javascript">
+import QtQuick 2.9
+import QtQuick.Layouts 1.3
+import QtQuick.Controls 2.0
+import QtCharts 2.0
+import QtDataVisualization 1.2
+
+// this is required for ImageItem
+import Adtf 1.0
+
+// you can define any QML component you like
+Item
+{
+    // use the onCompleted handler to setup all aspects of your Filter.
+    // here you can use all the functionality available within the plain javascript Filter.
+    Component.onCompleted:
+    {
+        var velocityInput = filter.createInputPin(&quot;velocity&quot;)
+        var yawRateInput = filter.createInputPin(&quot;yaw_rate&quot;)
+
+        velocityInput.sample.connect(function(velocitySample)
+        {
+            var yawRateSample = yawRateInput.getLastSample()
+            if (yawRateSample)
+            {
+                var timestamp = velocitySample.timestamp / 1000000000.0; // seconds
+                var velocity = velocitySample.data.value;
+                var yawRate = yawRateSample.data.value;
+                var kappa = yawRate / velocity;
+
+                // Kappa values are multiplied by 10 to improve visualization
+                var displayKappa = kappa * 10
+
+                // Update 2D Bar View
+                // Clear view on each update to show only current values
+                barSeries.clear();
+                barSeries.append(&quot;Velocity&quot;, [velocity]);
+                barSeries.append(&quot;Yaw rate&quot;, [yawRate]);
+                barSeries.append(&quot;Kappa&quot;, [displayKappa]);
+
+                // Update 2D Lines View
+                // Lines View visualizes data sequentially
+                // -&gt; Always update even if the view is not active (visible)
+                veloSeries.append(timestamp, velocity);
+                yawSeries.append(timestamp, yawRate);
+                kappaSeries.append(timestamp, displayKappa);
+
+                // Update 3D Scatter View
+                scatterModel.append({ &quot;xPos&quot;: velocity, &quot;yPos&quot;: yawRate, &quot;zPos&quot;: displayKappa});
+            }
+        })
+    }
+
+    RowLayout{
+        anchors.fill: parent
+        spacing: 5
+
+        // 2D Bar View element
+        // Visible on startup
+        ChartView {
+            id: barView
+            title: &quot;2D Bar View&quot;
+            width: 400
+            height: 400
+
+            BarSeries {
+                id: barSeries
+                axisX: BarCategoryAxis { categories: [&quot;Current values&quot; ] }
+                axisY: ValueAxis {
+                    titleText: &quot;Values&quot;
+                    titleVisible: true
+                    min: 0
+                    max: 100
+                }
+            }
+        }
+
+        // 2D Lines View element
+        // Invisible on startup
+        // Various LineSeries elements for each sample type
+        ChartView {
+            id: linesView
+            title: &quot;2D Lines View&quot;
+            width: 400
+            height: 400
+            antialiasing: true
+
+            // LineSeries for velocity sample values
+            LineSeries {
+                id: veloSeries
+                name: &quot;Velocity&quot;
+                axisX: ValueAxis {
+                    titleText: &quot;Timestamp&quot;
+                    titleVisible: true
+                    min: 0
+                    max: 60
+                }
+                axisY: ValueAxis {
+                    titleText: &quot;Values&quot;
+                    titleVisible: true
+                    min: 0
+                    max: 100
+                }
+            }
+            // LineSeries for yaw rate sample values
+            LineSeries {
+                id: yawSeries
+                name: &quot;Yaw rate&quot;
+            }
+            // LineSeries for kappa sample values
+            LineSeries {
+                id: kappaSeries
+                name: &quot;Kappa&quot;
+            }
+        }
+
+        // 3D Scatter View element
+        // Invisible on startup
+        // Uses a model to organize data
+        Scatter3D {
+            id: scatterView
+            width: 400
+            height: 400
+
+            // Custom axis elements
+            axisX: ValueAxis3D {
+                title: &quot;Velocity&quot;
+                titleVisible: true
+            }
+            axisY: ValueAxis3D {
+                title: &quot;Yaw rate&quot;
+                titleVisible: true
+            }
+            axisZ: ValueAxis3D {
+                title: &quot;Kappa&quot;
+                titleVisible: true
+            }
+
+            Scatter3DSeries {
+                ItemModelScatterDataProxy {
+                    itemModel: scatterModel
+                    // Mapping model roles to scatter series item coordinates.
+                    xPosRole: &quot;xPos&quot;
+                    yPosRole: &quot;yPos&quot;
+                    zPosRole: &quot;zPos&quot;
+                }
+            }
+        }
+        ListModel {
+            id: scatterModel
+        }
+    }
+}
+
+  </code>
+</pre>
+
+    <h3>Project setup</h3>
+    
+    <p>
+      In this step we create a new project. We add all three filters to the default filter graph
+      and connect the filter as you can see in figure "Filter Graph".
+      Add a <code>Timer Runner</code> and connect it to both <code>Generators</code>.
+      Connect both <code>Generators</code> to the respective <code>InPin</code> of the <code>Display</code>.
+    </p>
+    <figure class="figure">
+      <img src="screenshots/tutorials/filter_js_qt_example/display_session.png" class="figure-img img-fluid rounded">
+      <figcaption class="figure-caption">Filter Graph</figcaption>
+    </figure>
+
+    <h4>System File</h4>
+    <p>
+      Because we make use of Qt Charts which is not part of the ADTF delivery we need to reference the missing files
+      in the section <strong>Platform dependencies</strong>. A complete Qt installation contains the missing files in
+      the bin folder of the Qt installation directory. The order in which the dependencies are added matters!<br>
+      First we add the following two libraries to your <b>&lt;platform&gt;_release</b>:
+      <ul>
+        <li>Qt5DataVisualization.dll</li>
+        <li>Qt5Charts.dll</li>
+      </ul>
+      Next we add the following two files to your <b>&lt;platform&gt;_debug</b>
+      <ul>
+        <li>Qt5DataVisualization<b>d</b>.dll</li>
+        <li>Qt5Charts<b>d</b>.dll</li>
+      </ul>
+      Note: If you start the ADTF Launcher in debug mode, dependencies defined in <b>&lt;platform&gt;_debug</b>
+      are available otherwise the dependencies defined in <b>&lt;platform&gt;_release</b> are used.
+    </p>
+
+    <p>
+      Finally, we can run the <a href="tools_adtf_configuration_editor.html#project_view">session</a> and visualize our data.
+    </p>
+
+    <figure class="figure">
+      <img src="screenshots/tutorials/filter_js_qt_example/visualization.png" class="figure-img img-fluid rounded">
+      <figcaption class="figure-caption">Display</figcaption>
+    </figure>
+        
+      <h3>Where to go next?</h3>
+      <p>
+        Have a look at the <a href="tutorial_supporttb.html">ADTF 2 Support Toolbox</a> to see how to connect ADTF 3 and ADTF 2 filters.
+      </p>
+    </div>
+    <!-- Optional JavaScript -->
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.11.0/umd/popper.min.js" integrity="sha384-b/U6ypiBEHpOf/4+1nzFpr53nxSS+GLCkfwBdFNTxtclqqenISfwAzpKaMNFNmj4" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/js/bootstrap.min.js" integrity="sha384-h0AbiXch4ZDo7tp9hKZ4TsHbi047NrKGLO3SEJAg45jXxnGIfYzk4Si90RDIqNm1" crossorigin="anonymous"></script>
+    <script src="prism/js/prism.js"></script>
+  </body>
+</html>

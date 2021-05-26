@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- Required meta tags -->
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+	<meta name="description" content="This guide explains how to use the DAT Tool Processor to export or manipulate streams in DAT files">
+	<title>ADTF3 Guides - DAT Tool Processor</title>
+  <!-- Bootstrap CSS -->
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/css/bootstrap.min.css" integrity="sha384-/Y6pD6FV/Vv2HJnA6t+vslU6fwYXjCFtcEpHbNJ0lyAFsXTsjBbfaDjzALeQsN6M" crossorigin="anonymous">
+  <!-- Prism Syntax Highlighting CSS -->
+  <link rel="stylesheet" href="prism/css/prism.css">
+</head>
+<body>
+  <div class="container">
+    
+       <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+          <a class="navbar-brand" href="#">ADTF3 Guides</a>
+          <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+              <span class="navbar-toggler-icon"></span>
+          </button>
+          <div class="collapse navbar-collapse" id="navbarSupportedContent">
+
+          </div>
+      </nav>
+
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="index.html">Home</a></li>
+      <li class="breadcrumb-item active">DAT Tool Processor</li>
+    </ol>
+    <h2>ADTf DAT Tool Processor</h2>
+    <p>
+      ADTF saves recorded data to a ADTFDAT file by default (when using ADTFDAT File Recorder). 
+      Because there are plenty of reasons to do further processing with this data, ADTF (or rather say the ADTF File Library) 
+      offers a simple to use <code>Processor</code> interface to extract streams from ADTFDAT files as well as a <code>Reader</code> 
+      interface to import streams to ADTFDAT files. 
+    </p>
+    <p>    
+      This tutorial will implement a <code>Processor</code> capable of extracting images from a DAT file which contains a
+      previously recorded video stream.
+    </p>
+    <div class="alert alert-warning" role="alert">
+      A Qt installation is required to run this example.
+    </div>
+    <br>
+    <h3>The CMake file</h3>
+    <p>Set up a CMake file that looks up the Qt intstallation, because the processor uses the <code>QImage</code> class
+       to build the concrete image from a memory block. Furthermore it gives the project a name (image_processor) and
+       declares a header and source file for the new <code>Processor</code>. We set the target property attribute SUFIX to
+       <code>.adtffileplugin</code> because this is what the <a href="tools_3rdparty_adtf_dattool.html">ADTF DAT Tool</a> accepts as additional plugins.
+    </p>
+    <p>
+       Let's create a new folder and add the following files:
+       <ul>
+          <li>image_processor.h</li>
+          <li>image_processor.cpp</li>
+          <li>CMakeLists.txt</li>
+       </ul>
+       Open the CMakeLists.txt file and add the following content:
+    </p>
+    <pre>
+      <code class="language-cpp">
+cmake_minimum_required(VERSION 3.11)
+find_package(Qt5 COMPONENTS Gui REQUIRED)
+find_package(adtfdat_processing REQUIRED)
+
+add_library(image_processor MODULE
+    image_processor.h
+    image_processor.cpp)
+
+target_link_libraries(image_processor Qt5::Gui adtfdat_processing)
+
+set_target_properties(image_processor PROPERTIES
+    PREFIX ""
+    SUFFIX ".adtffileplugin"
+    DEFINE_SYMBOL ""
+  DEBUG_POSTFIX "d"
+)
+
+install(TARGETS image_processor
+    DESTINATION bin
+    CONFIGURATIONS
+        Debug
+        Release
+        RelWithDebInfo
+        MinSizeRelease)
+      </code>
+    </pre>
+
+    <br>
+    <p>
+      Open the CMakeLists.txt file with CMake-GUI. Each time you press configure, you will have to supply additional information:
+      <ul>
+          <li>CMAKE_INSTALL_PREFIX - choose where to save the created binaries</li>
+          <li>
+            Qt5_DIR - set to <code>lib/cmake/Qt5</code> directory of the installation folder of Qt
+            (e. g. <code>$(QT_DIR)/lib/cmake/Qt5</code>)
+          </li>
+          <li>adtfdat_processing_DIR - set to the directory where the adtfdat_processing binaries are installed
+            (e. g. <code>$(ADTF_DIR)/3rdparty/ifhd/lib/cmake/adtfdat_processing</code>)
+          </li>
+          <li>
+            a_util_DIR - set to the <code>lib/cmake/a_util</code> directory where the a_util binaries are installed
+            (e. g. <code>$(ADTF_DIR)/3rdparty/a_util/lib/cmake/a_util</code>)
+          </li>
+          <li>
+            ddl_DIR - set to the <code>cmake</code> directory where the ddl binaries are installed
+            (e. g. <code>$(ADTF_DIR)/3rdparty/ddl/cmake</code>)
+          </li>
+          <li>
+            adtf_file_DIR - set to the <code>lib/cmake/adtf_file</code> directory where adtf_file binaries are installed
+            (e. g. <code>$(ADTF_DIR)/3rdparty/ifhd/lib/cmake/adtf_file</code>)
+          </li>
+        </ul>
+    </p>
+
+    <br>
+    <br>
+    <br>
+    <h3>The Header File of the Processor</h3>
+    <p>
+      Each processor implements the <code>adtf::dat::Processor</code> interface which defines the following methods:
+      <ul>
+        <li><code>getProcessorIdentifier()</code></li>
+        <li><code>isCompatible()</code></li>
+        <li><code>open()</code></li>
+        <li><code>process()</code></li>
+      </ul>
+      Furthermore each processor inherits from <code>adtf::dat::Configurable</code> which adds support for settings.
+      <ul>
+        <li><code>setConfiguration()</code></li>
+        <li><code>getConfiguration()</code></li>
+      </ul>
+    </p>
+    <pre>
+      <code class="language-cpp">
+/**
+* This processor is capable of extracting images from a DAT file which contains
+* a video sample stream. Where the extracted images are stored can be configured
+* with the property output_path (default value is "images"), the type of the image
+* can be changed by setting the output_img_format property (default vlaue is JPG).
+* To extract every n-th image set the property extraction_interval (default value is 100).
+*/
+#pragma once
+
+#include &lt;adtfdat_processing/processor.h>
+#include &lt;string>
+#include &lt;memory>
+#include &lt;fstream>
+#include &lt;QCoreApplication>
+
+class ImageProcessor: public adtf::dat::Processor
+{
+    public:
+        ImageProcessor();
+        ~ImageProcessor();
+
+        std::string getProcessorIdentifier() const override;
+        bool isCompatible(const adtf_file::Stream& stream) const override;
+        void open(const adtf_file::Stream& stream, const std::string& destination_file_name) override;
+        void process(const adtf_file::FileItem& item) override;
+
+    private:
+    uint64_t sampleCounter;
+    uint64_t extraction_interval;
+    std::string output_path;
+    std::string output_img_format;
+    int width;
+    int height;
+    QCoreApplication* app;
+};
+      </code>
+    </pre>
+
+    <br>
+    <br>
+    <br>
+    <h3>The Source File of the Processor</h3>
+    <p>
+        The image processor defines three configurable settings  inside the constructor:
+        <ul>
+          <li>output_path - this is where the extracted images are saved to</li>
+          <li>output_img_format - any format QImage supports</li>
+          <li>extraction_interval - extract every n-th image of the stream</li>
+        </ul>
+      </p>
+      <p>
+        The constructor calls the <code>setConfiguration()</code> method with the default values to initialize the settings,
+        <code>output_path</code> points to the relative path <code>images</code>, the default <code>output_img_format</code> is
+        <code>JPG</code> and the default <code>extraction_interval</code> is set to <code>100</code>.
+        To make sure the Qt plugin for image types is loaded we initialize the Qt application inside the the constructor.
+      </p>
+      <p>
+        To implement the <code>adtf::dat::Processor</code> interface we have to think of an unique identifier for the new processor
+        which is returned by the interface method <code>getProcessorIdentifier()</code>.
+        The next method we have to implement is <code>isCompatible()</code> to check if the type of the given stream (from a DAT file)
+        can be handeled by the processor. In this example we expect the type to be <code>adtf/image</code> which is common for ADTF videos
+        in DAT files.
+      </p>
+      <p>
+        Next we implement the <code>open()</code> method where we do some initialisation. Here we can have
+        a look at the first (meta) sample of the stream and find out what the dimensions of the contained images
+        are. At this point the settings are read out and the destination folder is created where the extracted images are saved to.
+      </p>
+      <p>
+        The <code>process()</code> method gets every sample of the stream and we can decide what we want to do with it.
+        The image processor employs a sample counter and uses the configuration attribute <code>extraction_interval</code>
+        to do a modulo operation on the sample counter to extract only every n-th image. The sample memory
+        containing the image data is copied and a QImage is created and saved to the settings attribute <code>ouput_path</code>.
+      </p>
+    <pre>
+      <code class="language-cpp">
+#include &lt;adtf_file/stream_type.h&gt;
+#include &lt;adtf_file/sample.h&gt;
+#include &lt;ddl.h&gt;
+#include &lt;iostream&gt;
+#include &lt;string&gt;
+#include &lt;unordered_map&gt;
+
+#include &lt;QImage&gt;
+#include &lt;QString&gt;
+
+#include "image_processor.h"
+
+// Some how this call implemetns adtf_file_is_debug_plugin and adtf_file_set_objects
+static adtf_file::PluginInitializer initializer([] {
+  adtf_file::getObjects().push_back(
+    std::make_shared&lt;adtf::dat::ProcessorFactoryImplementation&lt;ImageProcessor&gt;&gt;());
+});
+
+ImageProcessor::ImageProcessor()
+{
+  sampleCounter = 0ULL;
+  height = 0;
+  width = 0;
+
+  int dummy_argc = 0;
+  char** dummy_argv = new char*[0];
+
+  // To save images with the help of Qt we needed to
+  // load the plugins for different image formats and
+  // this is what QCoreApplication does for us.
+  app = QCoreApplication::instance();
+  if (app == nullptr)
+  {
+    app = new QCoreApplication(dummy_argc, dummy_argv);
+  }
+
+  // Set all configuration options
+  setConfiguration({
+    { "output_path",{ "images", "string" } },
+    { "output_img_format",{ "JPG", "string" } },
+    { "extraction_interval",{ "100", "uint64" } }
+  });
+
+}
+
+ImageProcessor::~ImageProcessor()
+{
+}
+
+std::string ImageProcessor::getProcessorIdentifier() const
+{
+  return "image";
+}
+
+bool ImageProcessor::isCompatible(const adtf_file::Stream& stream) const
+{
+  auto tmp = std::dynamic_pointer_cast&lt;const adtf_file::DefaultStreamType&gt;(stream.initial_type);
+  if (tmp)
+  {
+    return tmp-&gt;getMetaType().compare("adtf/image") == 0;
+  }
+  else {
+    return false;
+  }
+}
+
+void ImageProcessor::open(const adtf_file::Stream& stream, const std::string& destination_file_name)
+{
+  auto property_type = std::dynamic_pointer_cast&lt;const adtf_file::PropertyStreamType&gt;(stream.initial_type);
+  if (!property_type)
+  {
+    throw std::runtime_error("The stream " + stream.name +
+      " could not cast initial_type of stream to PropertyStreamType");
+  }
+  std::cout &lt;&lt; "Stream type: " &lt;&lt; property_type-&gt;getMetaType() &lt;&lt; std::endl;
+
+  // Some debug output
+  property_type-&gt;iterateProperties([](const char* a, const char* b, const char* c) {std::cout &lt;&lt; a &lt;&lt; ": " &lt;&lt; c &lt;&lt; "  -  Datatype: " &lt;&lt; b &lt;&lt; std::endl; });
+  std::string w = property_type-&gt;getProperty("pixel_width").second;
+  std::string h = property_type-&gt;getProperty("pixel_height").second;
+  width = std::stoi(w);
+  height = std::stoi(h);
+  
+  // Make use of the settings
+  extraction_interval = adtf::dat::getPropertyValue&lt;uint64_t&gt;(getConfiguration(), "extraction_interval");
+  output_path = adtf::dat::getPropertyValue&lt;std::string&gt;(getConfiguration(), "output_path");
+  // Does the folder exist?
+  if (!a_util::filesystem::exists(output_path))
+  {
+    a_util::filesystem::createDirectory(output_path);
+  }
+  output_img_format = adtf::dat::getPropertyValue&lt;std::string&gt;(getConfiguration(), "output_img_format");	
+}
+
+void ImageProcessor::process(const adtf_file::FileItem& item)
+{
+  auto sample = std::dynamic_pointer_cast&lt;const adtf_file::WriteSample&gt;(item.stream_item);
+  if (sample)
+  {
+    if (sampleCounter &gt; 0 && (sampleCounter % extraction_interval == 0)) {
+      auto buffer = sample-&gt;beginBufferRead();
+      uchar* dest = new uchar[buffer.second];
+      std::memcpy(dest, buffer.first, buffer.second);
+      // Extract the image from the sample
+      QImage img = QImage(dest, width, height, QImage::Format_Grayscale8);
+      
+      std::string ts = output_path + "/" + std::to_string(sample-&gt;getTimeStamp().count()) + "." + output_img_format;
+      const QString generated_image_name(ts.c_str());
+      img.save(generated_image_name, output_img_format.c_str());
+    }
+  }
+  sampleCounter++;
+}
+      </code>
+    </pre>
+
+    <br>
+    <br>
+
+	<p>
+      This is what the project layout should look like in Visual Studio:
+    </p>
+    <figure class="figure">
+      <img src="screenshots/tutorials/dat_tool_processor/project_setup.png" class="figure-img img-fluid rounded">
+      <figcaption class="figure-caption">Visual Studio - Projects Explorer</figcaption>
+    </figure><br>
+
+    <br>
+    <p>
+      Next we build the following Visual Studio projects:
+      <ul>
+        <li>image_processor</li>
+        <li>INSTALL</li>
+      </ul>
+    </p>
+	<br>
+	<p>
+      The created <code>image_processor(d).adtffileplugin</code> needs some Qt files to work correctly. The following 2 dll files need to be in the same directory as the processor.
+      <ul>
+        <li>Qt5Core(d).dll</li>
+        <li>Qt5Gui(d).dll</li>
+      </ul>
+	  They are located in the <code>bin</code> folder of the Qt installation.
+	  For easier execution, we copy the dlls and the  <code>image_processor(d).adtffileplugin</code> into the adtf_dattool folder.
+  </p>
+  <div class="alert alert-info" role="alert">
+		The adtf_dattool is located at <br><code>ADTF_INSTALL_DIR/3rdparty/ifhd/bin/</code>.
+  </div>
+  <p>
+	  Finally, we need to tell our processor the installation path of Qt. We therefore create a <code>qt.conf</code> file in the adtf_dattool folder which contains the path:
+  </p>
+  <pre>
+<code class=language-cpp>[Paths]
+Prefix = QT/Installation/Path</code>
+  </pre>
+
+	<div class="alert alert-warning" role="alert">
+      Caveat: Make sure to use forward slashes even under Windows or escape backslashes with an extra backslash. Otherwise
+      Qt can't find the required plugins for image manipulation and no images will be created.
+  </div>
+
+    <p>
+      Now we are ready to run the <a href="tools_3rdparty_adtf_dattool.html">DAT Tool</a> and use our image processor plugin. The command line version of the tool expects the following parameters
+	  when extracting images from a video stream of a DAT file:
+      <ul>
+        <li><strong>--plugin</strong> the processor plugin to use for stream export</li>
+        <li><strong>--export</strong> the DAT file which contains the video stream to be exported</li>
+		<li><strong>--stream</strong> the name of the stream to export</li>
+      </ul>
+	  Additionally we can specify following optional processor properties using the <code>property</code> parameter:
+	  <ul>
+        <li><strong>extraction_interval</strong> every n-th image sample to be extracted - default value is "100"</li>
+        <li><strong>output_path</strong> the output path for extracted images - default value is "images"</li>
+		<li><strong>output_img_format</strong> the output image format - default value is "JPG"</li>
+      </ul>
+	  An example usage of the debug version of the DAT Tool in combination with our created debug version of the image processor and custom properties could look like this:
+    <pre>
+      <code class=language-cpp>
+adtf_dattool.exe --plugin image_processord.adtffileplugin --export example_file.adtfdat --stream VIDEO --property extraction_interval=50 --property output_path=test --property output_img_format=png
+      </code>
+    </pre>
+    </p>
+	<div class="alert alert-warning" role="alert">
+      If you run the <strong>debug</strong> version of the <a href="tools_3rdparty_adtf_dattool.html">DAT Tool</a>, make sure to reference the <strong>image_processor<span style="color: #FF0000">d</span>.adtffileplugin</strong>.
+      Otherwise prepare for trouble.
+    </div>
+
+    <div class="alert alert-warning" role="alert">
+        If you run the <strong>release</strong> version of the <a href="tools_3rdparty_adtf_dattool.html">DAT Tool</a>, make sure to reference the <strong>image_processor.adtffileplugin</strong>.
+        Otherwise prepare for trouble.
+    </div>
+
+      <!-- Optional JavaScript -->
+      <!-- jQuery first, then Popper.js, then Bootstrap JS, then Prism.js-->
+      <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.11.0/umd/popper.min.js" integrity="sha384-b/U6ypiBEHpOf/4+1nzFpr53nxSS+GLCkfwBdFNTxtclqqenISfwAzpKaMNFNmj4" crossorigin="anonymous"></script>
+      <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/js/bootstrap.min.js" integrity="sha384-h0AbiXch4ZDo7tp9hKZ4TsHbi047NrKGLO3SEJAg45jXxnGIfYzk4Si90RDIqNm1" crossorigin="anonymous"></script>
+      <script src="prism/js/prism.js"></script>
+
+
+  </body>
+
+</html>

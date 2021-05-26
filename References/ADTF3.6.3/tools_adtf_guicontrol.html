@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+	<meta name="description" content="This guide explains how to use the ADTF GUI Control">
+	<title>ADTF3 Guides - ADTF GUI Control</title>
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/css/bootstrap.min.css" integrity="sha384-/Y6pD6FV/Vv2HJnA6t+vslU6fwYXjCFtcEpHbNJ0lyAFsXTsjBbfaDjzALeQsN6M" crossorigin="anonymous">
+	<link rel="stylesheet" href="font-awesome/css/font-awesome.min.css">
+  </head>
+  <body>
+	<div class="container">
+		
+       <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+          <a class="navbar-brand" href="#">ADTF3 Guides</a>
+          <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+              <span class="navbar-toggler-icon"></span>
+          </button>
+          <div class="collapse navbar-collapse" id="navbarSupportedContent">
+
+          </div>
+      </nav>
+
+		<ol class="breadcrumb">
+			<li class="breadcrumb-item"><a href="index.html">Home</a></li>
+			<li class="breadcrumb-item active">ADTF GUI Control</li>
+		</ol>
+        
+		<h2><img src="logos/adtf_guicontrol.png" width="48" height="48"> The ADTF GUI Control</h2>
+		
+        <p>
+			This guide covers the functionality of the GUI Control. After reading this guide, you will know:
+			<ul>
+				<li>How to connect to a runnging ADTF system</li>
+				<li>How to run a session</li>
+				<li>How to play back a DAT file</li>
+				<li>How to record data</li>
+				<li>How to set marker in a recoded DAT file</li>
+			</ul>
+		</p>
+		<h3>The Start Screen</h3>
+		<p>
+			The GUI-Control offers two ways to control an ADTF launcher:
+			<ul>
+				<li>Option 1: Run a session on a <b>locally</b> started ADTF launcher</li>
+				<li>Option 2: Connect to session running on a <b>remote</b> ADTF launcher</li>
+			</ul>
+		</p>
+		<figure class="figure">
+			<img src="screenshots/tools/adtf_guicontrol/gui_control_start_screen.png" class="figure-img img-fluid rounded">
+			<figcaption class="figure-caption">The recoder start screen</figcaption>
+		</figure>
+
+		<h4>Run a session locally</h4>
+		<p>
+			Click the "Open Session or Project" button to select a session file <code>(*.adtfsession)</code> directly or a project file
+			<code>(*.adtfproject)</code> to list all session files contained in this project.
+		</p>
+		<figure class="figure">
+			<img src="screenshots/tools/adtf_guicontrol/gui_control_start_screen2.png" class="figure-img img-fluid rounded">
+			<figcaption class="figure-caption">Open project file</figcaption>
+		</figure>
+		<p>
+			Next select one of the available sessions and click the <code>Launch</code> button. A dialog with start settings
+			will show up. You can adopt the launcher command and the port the URL however should not be changed because it has no effect.
+			The launcher is always started on the local PC and the URL is shown for convenience only.
+			<figure class="figure">
+				<img src="screenshots/tools/adtf_guicontrol/gui_control_start_screen3.png" class="figure-img img-fluid rounded">
+				<figcaption class="figure-caption">Launch settings</figcaption>
+			</figure>
+		</p>
+
+		<h4>Connect to Remote Session</h4>
+		<p>
+			If you want to control an already running ATDF launcher maybe on an other PC in the same network click on the
+			"Connect to Session" button. A dialog will show up where you can specify the URL and port pointing to the remote
+			ADTF launcher. The ADTF launcher must have been started something like this on another pc to listen on the public interface:
+			<code>adtf_launcher.exe -session="path/to/session.adtfsession" -control-url="http://10.10.10.36:8000" -console</code>
+		</p>
+		<figure class="figure">
+			<img src="screenshots/tools/adtf_guicontrol/gui_control_connect.png" class="figure-img img-fluid rounded">
+			<figcaption class="figure-caption">Connect to remote</figcaption>
+		</figure>
+
+		<h3>Tab Controls</h3>
+		<p>
+			As soon as the connection to the ADTF launcher is established a new tab with the name of the running session will
+			show up inside the GUI-Control representing the new connection. Pressing the "X" on the tab header terminates the
+			connection and optionaly shuts down the ADTF launcher.
+			The GUI Control offers the same functionality as the ADTF Control but with a convenient graphical user interface.
+			To make further connection you can switch back to the first tab with the name "Start" and repeat the preceding
+			steps.<br>
+			In the header section you can see some common information about the connected ADTF launcher e.g. the loaded system,
+			loaded session and the currently active streaming- and filter graph.
+			Bellow you can find the buttons <code>Shutdown</code>, <code>Init</code> and <code>Run</code> to control the runlevel of the filter graph. Pressing
+			the <code>Run</code> button starts the data flow through the streaming and filter graph.<br>
+
+			Runlevel mapping between GUI-Control and ADTF launcher:
+			<table class="table table-bordered table-sm">
+				<thead>
+					<tr>
+						<th>Button Clicked</th>
+						<th>Runlevel change within ADTF launcher</th>
+					</tr>
+				</thead>
+				<tbody>
+					<tr>
+						<td>Launch</td>
+						<td>System</td>
+					</tr>
+					<tr>
+						<td>Init</td>
+						<td>Filter Graph</td>
+					</tr>
+					<tr>
+						<td>Run</td>
+						<td>Running</td>
+					</tr>
+				</tbody>
+			</table>
+
+			The "Player" and "Recorder" sections are only available if the loaded session contains the "ADTFDAT File Player" or
+			"ADTFDAT File Recorder" respectively. All file recorded with any of the Recorders are listed with in "Recorded Files".
+		</p>
+		<figure class="figure">
+			<img src="screenshots/tools/adtf_guicontrol/gui_control_session_loaded.png" class="figure-img img-fluid rounded">
+			<figcaption class="figure-caption">This is waht the ADTF GUI Constrol looks like</figcaption>
+		</figure>
+		
+		<h4>The Player Control</h4>
+		The Player can handle ADTF3 DAT files (*.adtfdat) and, if a data type mapping is avaiable, ADTF2 DAT files (*.dat).
+		The player enables the user to:
+		<ol>
+			<li>Open a *.adtfdat/*.dat file</li>
+			<li>Play a *.adtfdat/*.dat file</li>
+			<li>Pause a *.adtfdat/*.dat file</li>
+            <li>Step to next trigger in paused mode</li>
+            <li>Enable/disable loop-mode</li>
+            <li>Adapt playback speed</li>
+			<li>Slide within the stream time</li>
+		</ol>
+		
+		<h4>The Recorder Control</h4>
+		If the currently active streaming graph (referenced in the running session) has more than one ADTFDAT File Recorder each recorder
+		gets it own control. Additionally one master control is added for convenience which drives all other recorders. The Recorder serves these functionalities:
+		<ol>
+			<li>Start recording</li>
+			<li>Stop recording</li>
+			<li>Split recording</li>
+			<li>Open marker dialog</li>
+			<li>Add QuickMarker</li>
+		</ol>
+		<p>
+			A red button means recording a green button means ready to start recording. The recorded data goes into a DAT file.
+			The DAT files can be split into several chunks by clicking the split button. The given name to a recoreded file is
+			configured as property of the ADTFDAT File Recorder inside the Configuration Editor.
+		</p>
+
+		<h5>Marker</h5>
+		<p>
+			The GUI-Control offers two possibilities to mark important events during recording. On the one hand you can use Quick Markers
+			to place a marker immediately with a default label and the current time. On the other hand you can use the marker dialog
+			button to specify a name and adjust the timestamp.
+		</p>
+		<figure class="figure">
+			<img src="screenshots/tools/adtf_guicontrol/recoder_marker_buttons.png" class="figure-img img-fluid rounded">
+			<figcaption class="figure-caption">The recoder and its buttons</figcaption>
+		</figure><br>
+		
+		<strong>Quick Marker</strong>
+		<p>Click the <code>Quick Marker</code> button and a marker is set immediatly at the current stream time with the default marker name</p>
+		
+		<strong>Marker Dialog</strong>
+		<ol>
+			<li>Click marker dialog button<br>
+				Marker dialog will open. 'Name' is set to default marker name. 'Position' is set to current stream time.
+				<br>
+				<br>
+				<figure class="figure">
+					<img src="screenshots/tools/adtf_guicontrol/recoder_marker_dialog.png" class="figure-img img-fluid rounded">
+					<figcaption class="figure-caption">Marker Dialog</figcaption>
+				</figure><br>
+			</li>
+			<li>If necessary, change marker name</li>
+			<li>
+				If necessary, adjust marker position<br>
+				Accepted pattern: <code>[hhh:]mm:ss</code><br>
+				For example:
+				<ul>
+					<li>01:12:34</li>
+					<li>1:12:34</li>
+					<li>100:00:00</li>
+					<li>23:42</li>
+				</ul>
+			</li>
+			<li>Click 'OK' Button<br>
+				Marker dialog will close and marker is set in DAT file.
+			</li>
+		</ol>
+		
+		<h6>Short Cuts</h6>
+		<p>
+			<kbd><kbd>ctrl</kbd> + <kbd>0</kbd></kbd>
+			sets a QuickMarker for all recorders, note it is zero not the character 'O'
+		</p>
+		<p>
+			<kbd><kbd>ctrl</kbd> + <kbd>m</kbd></kbd>
+			opens the marker dialog for all recorders
+		</p>
+
+		<h3>Recorded Files</h3>
+		<p>
+			All recorded DAT files are displayed in this table. Remember that the files are generated on the system where
+			the ADTF Launcher was started which is not necessarily the system where the GUI Control is running! Each row of the table offers a context menu:
+			<ul>
+				<li>Play - Starts the playback of the selected file if the active streaming graph (inside the running session of the ADTF Luncher) contains an ADTFDAT File Player.</li>
+				<li>Delete - Removes the selected file from disk (on the system where the ADTF Launcher is running)</li>
+				<li>Edit - Opens an editing dialog for the description of the selected DAT file</li>
+			</ul>
+		</p>
+		<figure class="figure">
+			<img src="screenshots/tools/adtf_guicontrol/gui_control_recorded_files.png" class="figure-img img-fluid rounded">
+			<figcaption class="figure-caption">Recorded Files</figcaption>
+		</figure>
+        
+        <h3>Where to go next?</h3>
+		<p>
+			Have a look at the <a href="tools_adtf_plugin_description_generator.html">ADTF Plugin Description Generator</a> to understand how the information of the 
+            components will be generated for e.g. ADTF Configuration Editor.
+		</p>
+
+        </div>
+    <!-- Optional JavaScript -->
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.11.0/umd/popper.min.js" integrity="sha384-b/U6ypiBEHpOf/4+1nzFpr53nxSS+GLCkfwBdFNTxtclqqenISfwAzpKaMNFNmj4" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/js/bootstrap.min.js" integrity="sha384-h0AbiXch4ZDo7tp9hKZ4TsHbi047NrKGLO3SEJAg45jXxnGIfYzk4Si90RDIqNm1" crossorigin="anonymous"></script>
+  
+
+  </body>
+
+</html>

@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="This guide explains the common basics of JavaScript based ADTF filters">
+    <title>ADTF3 Guides - QtQuick Filter</title>
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/css/bootstrap.min.css" integrity="sha384-/Y6pD6FV/Vv2HJnA6t+vslU6fwYXjCFtcEpHbNJ0lyAFsXTsjBbfaDjzALeQsN6M" crossorigin="anonymous">
+	<!-- Prism Syntax Highlighting CSS -->
+	<link rel="stylesheet" href="prism/css/prism.css">
+  </head>
+  <body>
+	<div class="container">
+		
+       <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+          <a class="navbar-brand" href="#">ADTF3 Guides</a>
+          <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+              <span class="navbar-toggler-icon"></span>
+          </button>
+          <div class="collapse navbar-collapse" id="navbarSupportedContent">
+
+          </div>
+      </nav>
+
+		<ol class="breadcrumb">
+			<li class="breadcrumb-item"><a href="index.html">Home</a></li>
+			<li class="breadcrumb-item active">QtQuick Filter</li>
+		</ol>
+        
+		<h2>QtQuick Filter</h2>
+    
+        <p>
+            This guide covers how to combine <a href="https://doc.qt.io/qt-5/qmlapplications.html">Qt QML</a>
+            based user interfaces with an ADTF filter which can utilize a subset of the ADTF C++ API in JavaScript directly.
+        </p>
+        <p>After reading this guide you will know how to:</p>
+        <ul>
+            <li>access ADTF data samples with JavaScript</li>
+            <li>create a simple GUI using QtQuick elements</li>
+        </ul>
+        
+        <p>
+            This tutorial focuses on the QtQuick Filter which combines the functionality of
+            <a href="https://doc.qt.io/qt-5/qtqml-index.html"></a>QML from the Qt framework
+            with the ADTF runtime.
+            The QtQuick Filter extends the previously discussed JavaScript Filter with an
+            user interface for data visualization. It is important to note that this kind of filter
+            runs in the GUI thread of Qt and the timing of code execution is
+            therefore asynchronous.
+            Most functionality works similar to the <a href="tutorial_filter_javascript.html">JavaScript Filter</a>.			
+            The following section describes the differences and the new functionality of the QtQuick Filter.
+        </p>                
+
+        <div class="alert alert-warning" role="alert">
+            Make sure the <strong>qt_xsystem</strong> service is added to the service section
+            of the <a href="intro_configuration_editor.html#system_editor">System Editor</a>.
+            Otherwise the QtQuick Filter cannot be started.
+        </div>
+
+
+<p>
+We are going to create a small session that has a <a href="../adtf_html/page_demo_time_triggered_filter.html">Demo Time Trigger</a>, a <a href="../adtf_html/page_demo_virtual_clock.html">Demo Virtual Clock Input</a>, a <a href="../adtf_html/page_recorder_plugin.html#section_recorder">ADTFDAT File Recorder</a> and a <a href="../adtf_html/page_javascript_filter.html#section_qtquick_filter">QtQuick Filter</a>.
+</p>
+<figure class="figure">
+    <img src="screenshots/tutorials/filter_qtquick/qtquick_session.png" class="figure-img img-fluid rounded">
+    <figcaption class="figure-caption">Our Tutorial Filter Graph.</figcaption>
+</figure>
+<figure class="figure">
+    <img src="screenshots/tutorials/filter_qtquick/qtquick_streaming_graph.png" class="figure-img img-fluid rounded">
+    <figcaption class="figure-caption">Our Tutorial Streaming Graph.</figcaption>
+</figure>
+
+
+ <p>
+    Open the context menu of the filter by performing a right click on the filter. Click on "Open Editor".
+    This will open the ADTF JavaScript-Editor where you can start writing JavaScript code.
+    Paste the following code and save it.
+</p>
+<pre>
+  <code class="language-javascript">
+import QtQuick 2.9
+import QtQuick.Layouts 1.3
+import QtQuick.Controls 2.0
+
+// this is required for ImageItem
+import Adtf 1.0
+
+// you can define any QML component you like
+Item
+{
+    property var recorder;
+
+    // use the onCompleted handler to setup all aspects of your Filter.
+    // here you can use all the functionality available within the plain javascript Filter.
+    Component.onCompleted:
+    {
+        var input = filter.createInputPin(&quot;input&quot;)
+        input.sample.connect(function(sample)
+        {
+            // we just update the labels text to display the last value we recieved.
+            lastValue.text = sample.data.value
+        })
+
+        var videoInput = filter.createInputPin(&quot;video&quot;)
+        videoInput.sample.connect(function(sample)
+        {
+            // for video types, sample.data contains a QVariant that stores the frame as a QImage,
+            // the ImageItem QML component can display these.
+            imageDisplay.image = sample.data
+        })
+
+        // we wanna be able to control the recorder, so we create an interface client.
+        recorder = filter.createInterfaceClient(&quot;recorder&quot;, &quot;recorder&quot;)
+    }
+
+    // this is just basic QML
+    ColumnLayout {
+        RowLayout {
+            ImageItem {
+                id: imageDisplay
+                width: 320
+                height: 240
+            }
+            Label {
+                text: &quot;Last Input Value:&quot;
+            }
+            Label {
+                id: lastValue
+            }
+        }
+        RowLayout {
+            Button {
+                text: &quot;Start Recording&quot;
+                onClicked: recorder.start()
+            }
+            Button {
+                text: &quot;Stop Recording&quot;
+                onClicked: recorder.stop()
+            }
+        }
+    }
+}
+
+  </code>
+</pre>
+
+ <p>
+ We can then start the session and get the UI we designed:
+ </p>
+
+<figure class="figure">
+    <img src="screenshots/tutorials/filter_qtquick/qtquick_running.png" class="figure-img img-fluid rounded">
+    <figcaption class="figure-caption">Tutorial output</figcaption>
+</figure>
+
+<p>
+For more elaborate examples please have a look at the <a href="../adtf_html/page_demo_qtquick_session.html">Demo QtQuick Tachometer Session</a> and <a href="../adtf_html/page_demo_qt_shared_session.html">Demo Qt Shared Session</a>.
+</p>
+
+        
+    <h3>Where to go next?</h3>
+    <p>
+      Have a look at the <a href="tutorial_filter_js_qt_example.html">JavaScript/QTQuick Example</a> to see an implementation of the previously described
+	  Data Generator and Data Processor using the JavaScript and QtQuick Filters. The example project is extended by simple GUI and data visualization elements.
+    </p>
+
+    </div>
+    <!-- Optional JavaScript -->
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.11.0/umd/popper.min.js" integrity="sha384-b/U6ypiBEHpOf/4+1nzFpr53nxSS+GLCkfwBdFNTxtclqqenISfwAzpKaMNFNmj4" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/js/bootstrap.min.js" integrity="sha384-h0AbiXch4ZDo7tp9hKZ4TsHbi047NrKGLO3SEJAg45jXxnGIfYzk4Si90RDIqNm1" crossorigin="anonymous"></script>
+    <script src="prism/js/prism.js"></script>
+  </body>
+</html>

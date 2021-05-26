@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+	<meta name="description" content="This guide explains how to use the ADTF Plugin Description Generator">
+	<title>ADTF3 Guides - ADTF Plugin Description Generator</title>
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/css/bootstrap.min.css" integrity="sha384-/Y6pD6FV/Vv2HJnA6t+vslU6fwYXjCFtcEpHbNJ0lyAFsXTsjBbfaDjzALeQsN6M" crossorigin="anonymous">
+	<link rel="stylesheet" href="font-awesome/css/font-awesome.min.css">
+  </head>
+  <body>
+	<div class="container">
+		
+       <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+          <a class="navbar-brand" href="#">ADTF3 Guides</a>
+          <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+              <span class="navbar-toggler-icon"></span>
+          </button>
+          <div class="collapse navbar-collapse" id="navbarSupportedContent">
+
+          </div>
+      </nav>
+
+		<ol class="breadcrumb">
+			<li class="breadcrumb-item"><a href="index.html">Home</a></li>
+			<li class="breadcrumb-item active">ADTF Plugin Description Generator</li>
+		</ol>
+        
+		<h2><img src="logos/adtf_plugin_description_generator.png" width="48" height="48"> ADTF Plugin Description Generator</h2>
+		
+        <p>
+			This guide covers how to integrate your code into ADTF. After reading this guide, you will know:
+			<ul>
+				<li>What the extension points of ADTF are</li>
+				<li>What a plugin description is</li>
+				<li>How to create a plugin description</li>
+			</ul>
+		</p>
+        
+        <h3>What is the ADTF Plugin Description?</h3>
+        
+        <p>The Plugin Description Generator (PDGen) extracts meta information from an ADTF plugin and stores it in an XML file.
+        Tools such as the ADTF Configuration Editor use the extracted information to provide plugin related functionality without having to load the actual plugin.</p>
+        
+        <p>To extract information such as any provided and/or required interfaces the PDGen has to actually load the plugin DLL and instantiate the contained ADTF services and filters. 
+        In some cases it may be necessary to include information which is not provided by the plugin at runtime.
+        To achieve this you can provide an additional plugin description file to be merged with the generated file.</p>
+
+        <p>The Plugin Description Generator (PDGen) is located in <code>${ADTF_DIR}/bin/</code> and <code>${ADTF_DIR}/bin/debug</code> respectively.</p>
+		
+        <p>For a more technical explanation please follow this <a href="../adtf_html/page_plugin_description.html">link</a></p>
+        
+        <h3>Extension points</h3>
+		<p>
+			To connect your code with ADTF you can choose from one of these interfaces:
+			<ul>
+				<li>Filters</li>
+				<li>Streaming Sources</li>
+				<li>Streaming Sinks</li>
+				<li>Services</li>
+				<li>Active Runners</li>
+				<li>Sample Streams</li>
+				<li>Binding Proxies</li>
+			</ul>
+		</p>
+		<h3>Turn your code into a plugin</h3>
+		<p>
+			All begins with a plugin. The SDK provides the <code>ADTF_PLUGIN</code> macro to connect your code
+			with the ADTF world. The macro requires two parameters. The first parameter is the name of your new
+			plugin. The second parameter is the name of the new class representing the plugin. The macro is used like this:
+			<div class="alert alert-secondary" role="alert">
+			<pre>
+				<code>
+ADTF_PLUGIN("ADTF Demo Signal Provider Plugin", cMySignalProviderFilter);
+				</code>
+			</pre>
+			</div>
+			After compiling your project, there will be a file called <code>*.adtfplugin</code> that represents
+			your code as a shared library which ADTF can load at runtime. To make your new plugin available
+			inside the Configuration Editor, you need an XML based description, which the Plugindescription Generator
+			can create for you:
+			<div class="alert alert-secondary" role="alert">
+			<pre>
+				<code>
+adtf_plugin_description_generator.exe -plugin="demo_data_triggered_filter.adtfplugin"
+				</code>
+			</pre>
+			</div>
+			And this is what a <code>*.plugindescription</code> looks like:<br><br>
+			<figure class="figure">
+				<img src="screenshots/tools/adtf_plugin_description_generator/plugin_description_basic.png" class="figure-img img-fluid rounded">
+				<figcaption class="figure-caption">The content of a plugindescription</figcaption>
+			</figure>
+		</p>
+        
+        <h3>CMake Support</h3>
+        
+        <p>The recommended way to call the PDGen is via the CMake function <code>adtf_create_plugindescription</code>. 
+        This function takes care of calling the PDGen as part of the build.</p>
+        <p>Example usage: </p>
+        
+        <div class="alert alert-secondary" role="alert">
+            <pre>
+                <code>
+adtf_add_filter(MyFilter my_filter.cpp my_filter.h)
+
+...
+
+adtf_create_plugindescription(
+    TARGET
+        MyFilter
+    PLUGIN_SUBDIR
+        "bin"
+    MERGE_DESCRIPTION
+        "MyFilter.plugindescription"
+    RAW_ARG
+        "--dynamic-link \"c:/path/to/some/link_dependency.dll\""
+                </code>
+            </pre>
+        </div>
+
+        <p>For further reference see the function definition and documentation in <code>${ADTF_DIR}/ADTFMacros.cmake</code>.</p>
+        
+        <h3>Command line support</h3>
+        
+        <p>Please see the output of a call with <code>--help</code> for all available command line options.</p>
+        
+        <div class="alert alert-secondary" role="alert">
+            <pre>
+                <code>
+usage:
+  adtf_plugin_description_generator.exe  options
+
+where options are:
+  -?, -h, --help                             display usage information
+  -p, --plugin &lt;pluginfile&gt;                  Path to the .adtfplugin
+  -m, --merge &lt;mergefile&gt;                    Path to the .plugindescription
+                                             which will be merged
+  -o, --output &lt;outputfile&gt;                  Path to the resulting .
+                                             plugindescription file
+  --adtf-core-plugin &lt;adtfcorepluginfile&gt;    Path to adtf_core.adtfplugin
+                                             (EXPERIMENTAL)
+  --system &lt;adtfsystemfile&gt;                  Path to a .adtfsystem file.
+                                             Providing additional platform
+                                             dependencies, services and
+                                             plugins (EXPERIMENTAL)
+  --settings &lt;cesettingsfile&gt;              (EXPERIMENTAL)
+  --plugin-directory &lt;plugindirectory&gt;       A path containing additional .
+                                             plugins (EXPERIMENTAL)
+  --dynamic-link &lt;sharedlibrary&gt;             A shared library to be loaded
+                                             before loading the plugin.
+                </code>
+            </pre>
+        </div>
+        
+        <h3>Where to go next?</h3>
+		<p>
+			Now you know a lot about setting up a session but what about manipulating it without UI ? 
+            Let's have a look at <a href="tools_adtf_config_tool.html">ADTF Config Tool</a>.
+		</p>
+
+        </div>
+    <!-- Optional JavaScript -->
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.11.0/umd/popper.min.js" integrity="sha384-b/U6ypiBEHpOf/4+1nzFpr53nxSS+GLCkfwBdFNTxtclqqenISfwAzpKaMNFNmj4" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/js/bootstrap.min.js" integrity="sha384-h0AbiXch4ZDo7tp9hKZ4TsHbi047NrKGLO3SEJAg45jXxnGIfYzk4Si90RDIqNm1" crossorigin="anonymous"></script>
+  
+
+  </body>
+
+</html>

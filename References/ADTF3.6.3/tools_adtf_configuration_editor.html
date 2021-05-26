@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+	<meta name="description" content="This guide explains how to use the ADTF Configuration Editor">
+	<title>ADTF3 Guides - ADTF Configuration Editor</title>
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/css/bootstrap.min.css" integrity="sha384-/Y6pD6FV/Vv2HJnA6t+vslU6fwYXjCFtcEpHbNJ0lyAFsXTsjBbfaDjzALeQsN6M" crossorigin="anonymous">
+	<link rel="stylesheet" href="font-awesome/css/font-awesome.min.css">
+  </head>
+  <body>
+	<div class="container">
+		
+       <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+          <a class="navbar-brand" href="#">ADTF3 Guides</a>
+          <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+              <span class="navbar-toggler-icon"></span>
+          </button>
+          <div class="collapse navbar-collapse" id="navbarSupportedContent">
+
+          </div>
+      </nav>
+
+		<ol class="breadcrumb">
+			<li class="breadcrumb-item"><a href="index.html">Home</a></li>
+			<li class="breadcrumb-item active">ADTF Configuration Editor</li>
+		</ol>
+
+		<h2><img src="logos/adtf_configuration_editor.png" width="48" height="48"> ADTF Configuration Editor</h2>
+		<p>
+			This guide covers what an ADTF Session is and where the Configuration Editor comes into play. After reading this guide, you will know:
+			<ul>
+				<li>The different files you need to know in ADTF3</li>
+				<li>How to create ADTF Sessions with the Configuration Editor</li>
+				<li>How to launch an ADTF Session</li>
+                <li>How to work with the CE</li>
+			</ul>
+		</p>
+
+        <div class="alert alert-info" role="info">
+			Since ADTF <span class="badge badge-secondary">3.6.0</span> you can also execute the Configuration Editor as a <b>Runtime User</b>, but 
+            only in <code>Read-Only Mode</code> to view the sessions, graphs and properties without edit functionality (this is still part of the 
+            <b>Developer License</b>). So these are the restrictions, other functions like launching tools or sessions or navigate from Home View 
+            will work the same.
+        </div>
+
+		<h3>Files you need to know</h3>
+		<p>
+			Creating a new ADTF Project with the Configuration Editor results in a new folder named after the project, containing:
+			<ul>
+				<li>A project file <code>*.adtfproject</code> which defines</li>
+				<ul>
+					<li>Names and paths to all session files<span></li>
+					<li>Names and paths to all graph files<span></li>
+					<li>Names and paths to all system files<span></li>
+				</ul>
+				<li>A new folder named <i class="fa fa-folder-o" aria-hidden="true"></i><span class="badge badge-light">adtfsessions</span></li>
+				<ul>
+					<li>New session files are created here. These files have the suffix <code>*.adtfsession</code> and define the path to the selected</li>
+					<ul>
+						<li>system file</li>
+						<li>system properties file</li>
+						<li>graph file</li>
+						<li>graph properties file</li>
+					</ul>
+					<div class="alert alert-info" role="alert">
+						The <b>session</b> is what the <code>adtf_launcher</code> can run. The <b>session</b> defines:
+						<ul>
+							<li>The system file to use. Maybe you have a system file for x86, ARM, etc.</li>
+							<li>The streaming graph and therefore where the data comes from and flows to</li>
+							<li>The filter graph doing the data processing, filtering, calculation, visualisation, etc.</li>
+						</ul>
+					</div>
+					<li>A new folder named <i class="fa fa-folder-o" aria-hidden="true"></i><span class="badge badge-light">adtfgraphs</span></li>
+					<ul>
+						<li>New graph files are created here. These files have the suffix <code>*.adtfgraph</code> and contain</li>
+						<ul>
+							<li>all created <span class="badge badge-light">Filter Graphs</span> as XML structure and the objects they consist of</li>
+							<li>all created <span class="badge badge-light">Streaming Graphs</span> as XML structure and the objects they consist of</li>
+						</ul>
+						<li>The layout attributes of a graph are stored in a file called <code>*.adtfconfiglayout</code></li>
+						<li>The properties of a graph changed by the user are stored in a file called <code>*.adtfproperties</code></li>
+					</ul>	
+					<li>A new folder named <i class="fa fa-folder-o" aria-hidden="true"></i><span class="badge badge-light">adtfsystems</span></li>
+					<ul>
+						<li>
+							When new system descriptions are created the <code>*.adtfsystem</code> files representing them
+							at file level, are created here. Such a file contains
+						</li>
+						<ul>
+							<li>a list of environment variables</li>
+							<li>the platform dependend binaries</li>
+							<li>a list of plugin descriptions to load</li>
+							<li>an ordered list of services to load</li>
+						</ul>
+						<li>The properties of a system configuration changed by the user are stored in a file called <code>*.adtfproperties</code></li>
+					</ul>
+				</ul>
+			</ul>
+		</p>
+
+		<h3 id="start">Start the Configuration Editor</h3>
+		<p>
+			In order to start the Configuration Editor go to the <i class="fa fa-folder-o" aria-hidden="true"></i>
+			<span class="badge badge-light">bin</span> directory of the ADTF installation folder
+			and double click on the <code>adtf_configuration_editor.exe</code> file.
+		</p>
+		<h4>The different areas of the Configuration Editor</h4>
+		<ul>
+			<li><a href="#project_view">Project View</a> - Manage the files of your project</li>
+			<li><a href="#components_view">Components View</a> - The elements your graphs consists of</li>
+            <li><a href="#home_view">Home View</a> - Landing Page and personalizable dashboard</li>
+			<li><a href="#session_editor">Session Editor</a> - Define the combination  of Streaming-, Filter-Graph and System file</li>
+			<li><a href="#streaming_graph_editor">Streaming Graph Editor</a> - Define where data comes from and goes to</li>
+			<li><a href="#filter_graph_editor">Filter Graph Editor</a> - Data processing, filtering, calculation, visualisation, etc</li>
+			<li><a href="#property_editor">Property Editor</a> - Tweak the available settings of the selected element</li>
+			<li><a href="#system_editor">System Editor</a> - Define all dependencies to external libraries, services and plugins for a specific platform</li>
+			<li><a href="#valdiation_protocol">Validation Protocol</a> - Listing current configuration problems</li>
+			<li><a href="#options">Settings Editor (Options)</a> - Dialog for global options of the Configuration Editor</li>
+		</ul>
+		<figure class="figure">
+			<img src="screenshots/tools/adtf_configuration_editor/ce_project_loaded.png" class="figure-img img-fluid rounded">
+			<figcaption class="figure-caption">The Configuration Editor when a session is loaded</figcaption>
+		</figure>
+
+
+		<h4><a name="project_view">The Project View</a></h4>
+		<p>
+			The main files that make up a project are session files, graph files and system files. The project view
+			enables you to create, delete and rename these files. The context menu of session files is of special interest,
+			because you can <strong>run the session</strong> directly with the ADTF Launcher in various ways:
+		</p>
+
+		<h5>Run the selected session with the ADTF Control</h5>
+		<ul>
+			<li>
+				<code>Launch with ADTF Control</code><br>
+				An ADTF launcher is started and an ADTF Control is connected to it. <strong>You can issue control commands.</strong>
+			</li>
+			<li>
+				<code>Launch with ADTF Control (debug)</code><br>
+				Same as above but debug libraries are loaded to enable debugging.
+			</li>
+			<li>
+				<code>Launch with ADTF Control (profiling)</code> <br>
+				Run the selected session with the ADTF Control with profiling enabled.
+			</li>
+		</ul>
+		<h5>Run the selected session with the ADTF GUI Control</h5>
+		<ul>
+			<li>
+				<code>Launch with ADTF GUI Control</code><br>
+				An ADTF launcher is started and an ADTF GUI Control is connected to it. <strong>A graphical user interface
+				is provided to issue control commands.</strong>
+			</li>
+			<li>
+				<code>Launch with ADTF GUI Control (debug)</code><br>
+				Same as above but debug libraries are loaded to enable debugging.
+			</li>
+			<li>
+				<code>Launch with ADTF GUI Control (profiling)</code><br>
+				Run the selected session with the ADTF GUI Control with profiling enabled.
+			</li>
+		</ul>
+		<h5>Run the selected session with the ADTF Launcher</h5>
+		<ul>
+			<li>
+				<code>Launch with ADTF Launcher</code><br>
+				The session is loaded and the run level is set to <code>running</code>.
+				You can see the output of the streaming and filter graph in the console but you <strong>cannot issue control commands</strong>.
+			</li>
+			<li>
+				<code>Launch with ADTF Launcher (debug)</code><br>
+				Same as above but debug libraries are loaded to enable debugging.
+			</li>
+			<li>
+				<code>Launch with ADTF Launcher (profiling)</code><br>
+				Run the selected session with the ADTF Launcher with profiling enabled.
+			</li>
+		</ul>
+
+		<figure class="figure">
+			<img width="300" src="screenshots/tools/adtf_configuration_editor/ce_project_view.png" class="figure-img img-fluid rounded">
+			<figcaption class="figure-caption">The Project View</figcaption>
+		</figure>
+		<span style="padding-left:50px"></span>
+		<figure class="figure">
+			<img width="300" src="screenshots/tools/adtf_configuration_editor/ce_project_view_context_menu.png" class="figure-img img-fluid rounded">
+			<figcaption class="figure-caption">The context menu of the Project View</figcaption>
+		</figure>
+		
+		
+		<h4><a name="components_view">The Components View</a></h4>
+		<p>
+			These are the elements that can be added to the filter graph by drag and drop actions.
+			<div class="alert alert-info" role="alert">
+				Streaming Graph and Filter Graph accept different Components. So the set of displayed elements in the Components View change accordingly
+				to the selected graph tab ("Streaming Graph Editor" or "Filter Graph Editor")
+			</div>
+			
+			
+			<figure class="figure">
+				<img width="300" src="screenshots/tools/adtf_configuration_editor/ce_streaming_graph_components.png" class="figure-img img-fluid rounded">
+				<figcaption class="figure-caption">The Components View (for Streaming Graph)</figcaption>
+			</figure>
+            <span style="padding-left:50px"></span>
+            <figure class="figure">
+				<img width="300" src="screenshots/tools/adtf_configuration_editor/ce_filter_graph_components.png" class="figure-img img-fluid rounded">
+				<figcaption class="figure-caption">The Components View (for Filter Graph)</figcaption>
+			</figure>
+		</p>
+        
+        <h4><a name="home_view">The Home View</a></h4>
+		<p>
+            Since ADTF <span class="badge badge-secondary">3.6.0</span> we provide a new entry point for the Configuration Editor. 
+            The Home View is not only a Landing Page, it offers some quick actions to create or open projects and jump to documentation at the top.
+            The Left navigation bar provides some default actions linking to additional information which can be adapted in your cesettings file (see <a href="#options">Settings Editor (Options)</a>)
+        </p>    
+        <figure class="figure">
+            <img src="screenshots/tools/adtf_configuration_editor/ce_homeview.png" class="figure-img img-fluid rounded">
+            <figcaption class="figure-caption">The Home View</figcaption>
+        </figure>
+
+		<h4>The Editors</h4>
+		<p>
+			In the center of the graphical user interface you find three kinds of editors:
+		</p>
+		<h5><a name="session_editor">Session Editor</a></h5>
+		<p>
+			A project maybe contains a lot of streaming graph, filter graph and system definitions, but as soon as we want to run
+			a certain combination of it with the help of the ADTF launcher things must be clearly defined. The session defines what system
+			should be loaded, which streaming graph should act as data source and data sink and what filter graph should manipulate
+			the data.
+		</p>
+		<figure class="figure">
+			<img src="screenshots/tools/adtf_configuration_editor/ce_session_editor.png" class="figure-img img-fluid rounded">
+			<figcaption class="figure-caption">The Session Editor</figcaption>
+		</figure>
+			
+		<h5><a name="streaming_graph_editor">Streaming Graph Editor</a></h5>
+		<p>
+			Data must either be generated somehow or a kind of data source must be plugged in to get data into the ADTF system.
+			On the other side data is consumed by someone or must leave the ADTF system through some kind of data sink.
+			This is what the streaming graph is good for. Developers use the SDK to write their own <a href="sdk_streaming_source.html">
+			sources</a> and <a href="sdk_streaming_sink.html">sinks</a>. To let data flow between two elements
+			place a <code>Sample Stream</code> between them and connect the pins by drawing a line. Follow this
+			<a href="../adtf_html/page_streaming_graph.html">link</a> for
+			more information about streaming graphs.
+		</p>
+		<div class="alert alert-warning" role="alert">
+			Data transfer from the Streaming Graph to the Filter Graph begins with a <code>Sample Stream</code> placed on the
+			<code>Filter Graph Dock</code> and continous on the Filter Graph level with a <code>Streaming Inport</code>. The
+			connection is created autmatically but only if the name of <code>Sample Stream</code> and <code>Streaming Inport</code>
+			are exactly the same.
+		</div>
+		<figure class="figure">
+			<img src="screenshots/tools/adtf_configuration_editor/ce_streaming_graph_editor.png" class="figure-img img-fluid rounded">
+			<figcaption class="figure-caption">The Streaming Graph Editor</figcaption>
+		</figure>
+        <p>
+            Use right-click and context menu in any free space of the graph area for adding notes 
+            and some zoom options.
+        </p>
+
+		<h5><a name="filter_graph_editor">Filter Graph Editor</a></h5>
+		<p>
+			The filter graph is where the data manipulation and data analysis takes place. Data comes from the streaming graph through
+			<code>Streaming Inports</code> and leaves the filter graph through <code>Streaming Outports</code>. Both types can be added
+			through the context menu of the Graph Editor. It is important to mention that the name of the <code>Streaming Port</code>
+			and the name of the <code>Sample Stream</code> in the connected Streaming Graph are the same. Follow this
+			<a href="../adtf_html/page_filter_graph.html">link</a> for more information
+			about filter graphs.
+		</p>
+		<div class="alert alert-warning" role="alert">
+			Data transfer from the Filter Graph to the Streaming Graph goes through a <code>Streaming Outport</code> on the Filter Graph
+			level and continous with a <code>Sample Stream</code> on Streaming Graph level, placed on the <code>Filter Graph Dock</code>.
+			The connection is created autmatically but only if the name of the <code>Streaming Outport</code> and the <code>Sample Stream</code>
+			are exactly the same.
+		</div>
+		<p>
+			Processing can be triggered with the help of different types of <code>Runners</code>. By default triggers are sent between
+			the data samples and stimulate the following filter to do further processing, however if this behavior is not desired,
+			connections can be configured to be asynchronous. In this case <code>Time Runner</code> can be used to take control over
+			the exact timing (this can be useful for expensive visual updates) or <code>Thread Runner</code> to do heavy processing on
+			a different thread. To let data flow between two elements place a <code>Sample Stream</code> between them and connect the
+			pins by drawing a line.
+		</p>
+		<figure class="figure">
+			<img src="screenshots/tools/adtf_configuration_editor/ce_filter_graph_editor.png" class="figure-img img-fluid rounded">
+			<figcaption class="figure-caption">The Filter Graph Editor</figcaption>
+		</figure>
+        <p>
+            Use right-click and context menu in any free space of the graph area for adding an existing 
+            Filter Graph as subgraph (handled like a common filter), defining interfaces for in and 
+            out relations and, of course, some zoom functionality.
+        </p>
+		
+		<h5><a name="property_editor">Property Editor</a></h5>
+		<p>
+			If elements in the component view or in one of the editors provide some configuration options they are displayed inside the
+			Property Editor.
+			<div class="alert alert-warning" role="alert">
+                If a property accepts strings or numbers make sure to finish editing by hitting enter otherwise the input 
+                might get lost.
+			</div>
+		</p>
+		<figure class="figure">
+			<img width="50%" src="screenshots/tools/adtf_configuration_editor/ce_properties.png" class="figure-img img-fluid rounded">
+			<figcaption class="figure-caption">The Property Editor</figcaption>
+		</figure>
+
+		<h5><a name="system_editor">System Editor</a></h5>
+		<p>
+			Double clicking a system file in the Project View opens it inside the System Editor. If your session incorporates
+			filters, sources or sinks that have dependencies to libraries outside of ADTF this is the right place to define them.
+			Environments variables are useful to abstract away from platform specific paths which makes it easier to transfer project
+			files between different PCs or operting systems. You can define additional platform dependencies (e.g. OpenCV or Qt DLL libraries),
+			ADTF services and ADTF Plugins.<br>
+			If a component defines its ADTF dependencies properly required services are added automatically as soon as a component is
+			dropped from the components view into an editor. If you want to know more about how components can define their ADTF dependencies
+			follow this <a href="../adtf_html/page_ucom_setup_dependencies.html">link</a>.
+		</p>
+		<p>
+			The order in wich services are loaded can be influenced in two ways:
+			<ul>
+				<li>Services are loaded in a defined runlevel and can be changed in the System Editor</li>
+				<li>
+					Services are loaded in the order they are defined in the System Editor. This order can be
+					change with the up and down buttons.
+				</li>
+			</ul>
+			If a service offers configuration options they will be shown by selecting the service and if you want to rename a 
+			service the Rename entry is your friend. Also if you want to define services in a different runlevel.
+		</p>
+		<figure class="figure">
+			<img src="screenshots/tools/adtf_configuration_editor/ce_system_editor.png" class="figure-img img-fluid rounded">
+			<figcaption class="figure-caption">The System Editor: Change Runlevel of a System Service</figcaption>
+		</figure>
+        <p>
+            Since the Redesign in <span class="badge badge-secondary">3.6.0</span> all actions in each navigation section are available 
+            via context menu. This means, if you want to add a new service instance, choose <b>Service</b> in the left navigation, and somewhere 
+            in the main widget choose <b>Add Service...</b> after right-click:
+        </p>
+            <figure class="figure">
+                <img src="screenshots/tools/adtf_configuration_editor/ce_system_editor_add_service.png" class="figure-img img-fluid rounded">
+                <figcaption class="figure-caption">The System Editor: Add Service</figcaption>
+            </figure>
+            <figure class="figure">
+                <img src="screenshots/tools/adtf_configuration_editor/ce_system_editor_service_dialog.png" class="figure-img img-fluid rounded">
+                <figcaption class="figure-caption">The System Editor: Service Dialog</figcaption>
+            </figure>
+        
+		<p>
+			In order to avoid invalid system file paths when distributing an ADTF project, define an ADTF environment variable to abstract
+			away the system file path. All you have to do when moving to a different PC is adjust the environment variable accordingly.
+			Since ATDF <span class="badge badge-secondary">3.3.1</span> environment variables defined by the operating system e.g.
+			<code class="language-cmake">set TOOLBOXES=C:\toolboxes</code> can be used when defining ADTF environment variables.
+		</p>
+		<figure class="figure">
+			<img src="screenshots/tools/adtf_configuration_editor/ce_system_editor_variable_def.png" class="figure-img img-fluid rounded">
+			<figcaption class="figure-caption">The System Editor: Add an environment variable</figcaption>
+		</figure>
+
+		<h5><a name="valdiation_protocol">Validation Protocol</a></h5>
+		<p>
+			All session, graph, system or setting problems spotted by the configuration editor are display here. If the second column of the table
+			contains a button further help can be acquire.
+		</p>
+		<figure class="figure">
+			<img src="screenshots/tools/adtf_configuration_editor/ce_validation_protocol.png" class="figure-img img-fluid rounded">
+			<figcaption class="figure-caption">Validation Protocol</figcaption>
+		</figure>
+        <p>
+            Since the Graph Redesign in ADTF <span class="badge badge-secondary">3.6.0</span> the messages are also available as
+            tooltip at the graph components itself:
+        </p>
+        <figure class="figure">
+			<img src="screenshots/tools/adtf_configuration_editor/ce_validation_tooltip.png" class="figure-img img-fluid rounded">
+			<figcaption class="figure-caption">Validation Tooltip</figcaption>
+		</figure>
+
+		<h5><a name="options">Settings Editor (Options)</a></h5>
+		<p>
+			Here you can define custom settings for the Configuration Editor. The layout has changed with ADTF version
+			<span class="badge badge-secondary">3.6.0</span>
+		</p>
+		<p>
+			The section <strong>General</strong> holds currently only one 
+			option which enables or disables a message dialog, telling you that your license is about to expire. 
+		</p>
+		<figure class="figure">
+			<img src="screenshots/tools/adtf_configuration_editor/ce_options_general.png" class="figure-img img-fluid rounded">
+			<figcaption class="figure-caption">Options: General</figcaption>
+		</figure>
+        <p>
+            Please also note that the dark theme is still in <b>BETA</b>, so maybe some colors are not adapted yet - like always, feel free to contact us
+            for bug reports and change requests.
+        </p>
+        <figure class="figure">
+			<img src="screenshots/tools/adtf_configuration_editor/ce_darkmode.png" class="figure-img img-fluid rounded">
+			<figcaption class="figure-caption">Dark Mode</figcaption>
+		</figure>
+
+		<p>
+			The section <strong><a href="#home_view">Home View</a></strong> lists all entries which appear in the Home tab
+			(which is selected by default when the Configuration Editor is started, since ADTF version
+			<span class="badge badge-secondary">3.6.0</span>).
+			You can add new entries, edit existing entries or delete obsolete entries. Entries must have a unique name and
+			they must point to a valid HTTP URL. If a path to an icon is given, the icon will be shown in fornt of the name.
+			The optional JavaScript is executed as soon as the URL of the Home View element is loaded. You can use it the modify
+			the page pefore it is displayed.
+		</p>
+		<figure class="figure">
+			<img src="screenshots/tools/adtf_configuration_editor/ce_options_homeview.png" class="figure-img img-fluid rounded">
+			<figcaption class="figure-caption">Options: Home View</figcaption>
+		</figure>
+		
+		<p>
+			In the section <strong>Launchers</strong> you can define programs which are capable to run a session.
+			This configuration option was added with version <span class="badge badge-secondary">3.6.0</span>.
+			You can choose between the ADTF Launcher, the ADTF Control and the ADTF GUI Control.
+			Every single one of them supports plenty of start parameters which can be parametrised as a command here.
+			These launchers are available through the session context menu inside the "Project View", the Tools-Menu
+			and through short cuts (if they are defined).
+		</p>
+		<figure class="figure">
+			<img src="screenshots/tools/adtf_configuration_editor/ce_options_launchers.png" class="figure-img img-fluid rounded">
+			<figcaption class="figure-caption">Options: Launchers</figcaption>
+		</figure>
+
+		<p>
+			<strong>Modules</strong> section - since <span class="badge badge-secondary">3.4.0</span>
+			the functionality of the Configuration Editor can be extended by writing a module. The bootstrap meachnism of the
+			Configuration Editor looks inside the folders defined in this list and searches for files with
+			postfix <code>.*adtfceplugin</code>. When found the Configuration Editor loads these files as Qt plugins.
+			You can find an example module in "examples/bin/ce_external_property_module_example.adtfceplugin" and have a look
+			at <a href="tutorial_ce_module.html">ADTF CE Module</a> and here <a href="https://doc.qt.io/qt-5.9/qtqml-modules-cppplugins.html">
+			Qt documentation</a>
+		</p>
+		<div class="alert alert-warning" role="alert">
+			Please keep in mind that this feature is currently <b>BETA</b>!
+            Please report bugs and issues to our support.
+		</div>
+		<figure class="figure">
+			<img src="screenshots/tools/adtf_configuration_editor/ce_options_modules.png" class="figure-img img-fluid rounded">
+			<figcaption class="figure-caption">Options: Modules</figcaption>
+		</figure>
+		
+		<p>
+			<strong>Plugindescriptions</strong> section - 
+			every element (filter, source, sink, etc.) you can use within the Configuration Editor is defined in a Plugindescription.
+			This XML based file contains all the details about the resource like properties, description, version information and so on.
+			This list defines a search path the Configuration Editor looks into to find files with the ending <code>*.plugindescription</code>.
+		</p>
+		<figure class="figure">
+			<img src="screenshots/tools/adtf_configuration_editor/ce_options_plugindescriptions.png" class="figure-img img-fluid rounded">
+			<figcaption class="figure-caption">Options: Plugindescriptions</figcaption>
+		</figure>
+		
+		<p>
+			<strong>Tools</strong> section - 
+			You can start other programs from within the Configuration Editor over the Tools menu. If you like you can add additional programs
+			to the menu by extending this list. This configuration option was added with version <span class="badge badge-secondary">3.6.0</span>.
+		</p>
+		<figure class="figure">
+			<img src="screenshots/tools/adtf_configuration_editor/ce_options_tools.png" class="figure-img img-fluid rounded">
+			<figcaption class="figure-caption">Options: Tools</figcaption>
+		</figure>
+
+		<h3>Where to go next?</h3>
+		<p>
+			Have a look at the <a href="tools_adtf_launcher.html">Launcher guide</a> to learn about the Launcher commandline tool.
+		</p>
+
+        </div>
+    <!-- Optional JavaScript -->
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.11.0/umd/popper.min.js" integrity="sha384-b/U6ypiBEHpOf/4+1nzFpr53nxSS+GLCkfwBdFNTxtclqqenISfwAzpKaMNFNmj4" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/js/bootstrap.min.js" integrity="sha384-h0AbiXch4ZDo7tp9hKZ4TsHbi047NrKGLO3SEJAg45jXxnGIfYzk4Si90RDIqNm1" crossorigin="anonymous"></script>
+  
+
+  </body>
+
+</html>

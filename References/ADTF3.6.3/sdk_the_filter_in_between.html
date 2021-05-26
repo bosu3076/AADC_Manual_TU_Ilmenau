@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- Required meta tags -->
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+	<meta name="description" content="This guide explains how to place a filter between a data source and a data sink and manipulate the data">
+	<title>ADTF3 Guides - The Filter in between</title>
+  <!-- Bootstrap CSS -->
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/css/bootstrap.min.css" integrity="sha384-/Y6pD6FV/Vv2HJnA6t+vslU6fwYXjCFtcEpHbNJ0lyAFsXTsjBbfaDjzALeQsN6M" crossorigin="anonymous">
+  <!-- Prism Syntax Highlighting CSS -->
+  <link rel="stylesheet" href="prism/css/prism.css">
+</head>
+<body>
+  <div class="container">
+    
+       <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+          <a class="navbar-brand" href="#">ADTF3 Guides</a>
+          <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+              <span class="navbar-toggler-icon"></span>
+          </button>
+          <div class="collapse navbar-collapse" id="navbarSupportedContent">
+
+          </div>
+      </nav>
+
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="index.html">Home</a></li>
+      <li class="breadcrumb-item active">The Filter in between</li>
+    </ol>
+    <h2>The Filter in between</h2>
+    <p>
+      This guide teaches you how to:
+      <ul>
+        <li>Place a filter between a streaming sink and a streaming source</li>
+        <li>Connect the input of a streaming source with the filter</li>
+        <li>Filter some samples of the streaming source so that they do not reach the streaming sink</li>
+        <li>Connect the output of the filter with a streaming sink</li>
+      </ul>
+    </p>
+    
+    <h3>Create the CMakeLists.txt</h3>
+    <p>
+      For this example we create a simple filter which has a poperty that defines some characters that will be filterd from a stream of charcters.
+      The CMakeLists.txt looks like this:
+    </p>
+    
+    <p>      
+      <pre>
+          <code class="language-cmake">
+cmake_minimum_required (VERSION 3.10)
+project (CharacterFilterProject)
+
+set (HAPPY_CHARACTER_FILTER happy_character_filter)
+
+if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/happy_character_filter.h)
+  file(WRITE happy_character_filter.h)
+endif()
+if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/happy_character_filter.cpp)
+  file(WRITE happy_character_filter.cpp)
+endif()
+
+find_package(ADTF COMPONENTS filtersdk)
+
+# Adds the happy_character_filter project to the Visual Studio solution, which when build
+# creates a shared object called happy_character_filter.adtfplugin
+adtf_add_filter(${HAPPY_CHARACTER_FILTER} happy_character_filter.h happy_character_filter.cpp)
+
+# Adds the INSTALL project to the Visual Studio solution, which when build
+# copies our filter to the subdirectory given as the second argument into ${CMAKE_INSTALL_PREFIX}
+adtf_install_filter(${HAPPY_CHARACTER_FILTER} src/examples/bin)
+
+# Generate a plugindescription for our filter
+adtf_create_plugindescription(TARGET ${HAPPY_CHARACTER_FILTER} PLUGIN_SUBDIR "src/examples/bin")
+          </code>
+        </pre>
+      </p>
+
+      <h3>Use the CMake-GUI to configure relevant properties</h3>
+      <p>Switch to the CMake-GUI and follow these steps:</p>
+      <ul>
+        <li>
+          Run your <code>cmake-gui.exe</code> to open the graphical user interface
+        </li>
+        <li>
+          Fill in where CMake can find your source code (and the created <code>CMakeLists.txt</code> file)
+        </li>
+        <li>
+          Fill in a <code>build</code> folder (this is where all the build stuff goes)
+        </li>
+        <li>
+          Press the <code>Configure</code> button
+        </li>
+        <li>
+          Expand the entry <code>Ungrouped Entries</code> and you will see that the value for the variable <code>ADTF_DIR</code> is not set.
+          To fix this click into the "Value" column and fill in the path to your ADTF directory.
+        </li>
+        <li>
+          Expand the entry <code>CMAKE</code> and search for the variable <code>CMAKE_INSTALL_PREFIX</code>.
+          By default this variable points to an absolute path with administration privileges which can be a problem.
+          Set the variable also to your ADTF installation e.g. <code>D:/ADTF/3.4.0</code>.
+          <div class="alert alert-warning" role="alert">
+            Avoid using admin-permission directories. This can cause CMake to fail due to missing permissions.
+          </div>
+        </li>
+        <li>
+          Once again click the <code>Configure</code> button
+        </li>
+        <li>
+          Now you should get the "Configuring done" log message and you can click the <code>Generate</code> button
+        </li>
+        <li>
+          If everything is fine you get the "Generating done" log message. Click the <code>Open Project</code> button to start Visual Studio
+        </li>
+      </ul>
+    
+      <div class="alert alert-info" role="alert">
+        If you have any problems during this phase have a look at <a href="sdk_adtf_cmake_basics.html">ADTF related CMake</a>
+      </div>
+    
+      <h3>Implement the filter inside Visual Studio</h3>
+      <ul>
+        <li>
+          Open the <code>happy_character_filter</code> project in the solution explorer which should look like this:<br>
+          <figure class="figure">
+            <img src="screenshots/sdk/the_filter_in_between/the_filter_in_between_solution.png" class="figure-img img-fluid rounded">
+            <figcaption class="figure-caption">Visual Studio solution explorer</figcaption>
+          </figure>
+        </li>
+        <li>
+          Open the <code>happy_character_filter.h</code> file and add this filter declaration:
+          <pre>
+            <code class="language-cpp">
+#pragma once
+
+// Include all necessary headers from the ADTF SDK
+#include &lt;adtffiltersdk/adtf_filtersdk.h&gt;
+
+// For simplicity use the necessary namespaces
+using namespace adtf::util;
+using namespace adtf::ucom;
+using namespace adtf::base;
+using namespace adtf::streaming;
+using namespace adtf::mediadescription;
+using namespace adtf::filter;
+
+// A very simple filter which removes characters which match a given pattern.
+// To implement a Filter, subclass adtf::filter::cFilter
+class cHappyCharacterFilter: public cFilter
+{
+public:
+    // This macros provides some meta information about our Filter Implementation
+    // This will be exposed by the plugin class factory.
+    ADTF_CLASS_ID_NAME(cHappyCharacterFilter,
+                       &quot;happy_character_filter.filter.adtf_guides.cid&quot;,
+                       &quot;Happy Character Remover&quot;);
+
+public:
+    // We setup Pins in the constructor
+    cHappyCharacterFilter();
+
+    // This method will be called when a trigger occours via our input Pin.
+    tResult ProcessInput(ISampleReader* pReader,
+                         const iobject_ptr&lt;const ISample&gt;&amp; pSample) override;
+
+private:
+    tBool FilterCharacter(tChar nIn);
+
+    // A property variable always reflects the value of a Property
+    property_variable&lt;cString&gt; m_strFilterPattern;
+
+    // A writer where we forward filtered characters.
+    ISampleWriter* m_pWriter;
+};
+
+					</code>
+				</pre>
+			</li>
+			<li>
+				Open the <code>happy_character_filter.cpp</code> file and add this filter definition:
+				<pre>
+					<code class="language-cpp">
+#include &quot;happy_character_filter.h&quot;
+
+// The code behind the macro creates a plugin and the main entries to the plugin DLL or shared object.
+// The cHappyCharacterFilter will be available through the plugins class factory.
+ADTF_PLUGIN(&quot;Happy Character Filter Plugin&quot;,
+            cHappyCharacterFilter);
+
+// this is our input and output data
+struct tSimple
+{
+    tChar cValue;
+};
+
+cHappyCharacterFilter::cHappyCharacterFilter()
+{
+    // create a type definition from our existing struct definiton
+    auto oStructureDefiniton = structure&lt;tSimple&gt;(&quot;tSimple&quot;)
+                               .Add(&quot;cValue&quot;, &amp;tSimple::cValue);
+
+    // an Input Pin
+    CreateInputPin(&quot;charIn&quot;, oStructureDefiniton);
+    // and an Output Pin
+    m_pWriter = CreateOutputPin(&quot;charOut&quot;, oStructureDefiniton);
+
+    // make sure our Property Variable is in sync with a Property.
+    RegisterPropertyVariable(&quot;pattern&quot;, m_strFilterPattern);
+}
+
+tResult cHappyCharacterFilter::ProcessInput(ISampleReader* /*pReader*/,
+                                            const iobject_ptr&lt;const ISample&gt;&amp; pSample)
+{
+    // We use the sample_data template to access the data stored within the sample
+    // This behaves just like a tSimple pointer.
+    sample_data&lt;tSimple&gt; oData(pSample);
+
+    if (FilterCharacter(oData-&gt;cValue))
+    {
+        // this will initialize a new sample from the incoming sample.
+        output_sample_data&lt;tSimple&gt; oOutputData(pSample);
+        // we replace the filtered character.
+        oOutputData-&gt;cValue = &apos;_&apos;;
+        // and write it to the connected Sample Stream.
+        m_pWriter-&gt;Write(oOutputData.Release());
+    }
+    else
+    {
+        // otherwise we just forward the Sample.
+        m_pWriter-&gt;Write(pSample);
+    }
+
+    RETURN_NOERROR;
+}
+
+tBool cHappyCharacterFilter::FilterCharacter(tChar nIn)
+{
+    if (m_strFilterPattern-&gt;Find(nIn) != cString::InvalidPos)
+    {
+        // Received character is part of the filter pattern, so we remove it!
+        LOG_INFO(cString::Format(&quot;&gt;&gt; %c &lt;&lt; filtered&quot;, nIn));
+        return true;
+    }
+    else
+    {
+        LOG_INFO(cString::Format(&quot;&gt;&gt; %c &lt;&lt; not filtered&quot;, nIn));
+        return false;
+    }
+}
+
+            </code>
+          </pre>
+        </li>
+        <li>
+          Build the "CharacterFilterProject" solution with Visual Studio to get the shared object <code>*.adtfplugin</code><br>
+          <figure class="figure">
+            <img src="screenshots/sdk/the_filter_in_between/build_the_filter_in_between_solution.png" class="figure-img img-fluid rounded">
+            <figcaption class="figure-caption">Build the solution</figcaption>
+          </figure>
+        </li>
+        <li>
+          Build the "INSTALL" project with Visual Studio (this step deploys the created <code>*.plugindescription</code> files)<br>
+          <figure class="figure">
+            <img src="screenshots/sdk/the_filter_in_between/install_the_filter_in_between_solution.png" class="figure-img img-fluid rounded">
+            <figcaption class="figure-caption">Build the INSTALL project</figcaption>
+          </figure>
+        </li>
+        <li>
+          Now you have a brand new character filter which compares the received character from the incoming sample stream against a chracter pattern
+          held by the filter as a configurable property. If the pattern contains the received character it is replaced by the underscore character.
+          You can find the generated <code>happy_character_filter.adtfplugin</code> and <code> happy_character_filter.plugindescription</code> in the
+          <code>src\examples\bin\debug</code> folder of your ADTF directory.<br>
+          <figure class="figure">
+            <img src="screenshots/sdk/the_filter_in_between/the_filter_in_between_build_files.png" class="figure-img img-fluid rounded">
+            <figcaption class="figure-caption">Generated files</figcaption>
+          </figure>
+        </li>
+      </ul>
+        
+      <h3>Build an ADTF Session for our new filter</h3>
+      <p>Fire up the Configuration Editor</p>
+      <ol>
+        <li>Create a new project</li>
+        <li>
+          Create a streaming graph that looks like this
+          <ul>
+            <li>
+                Drag and drop 2 sample streams from the components tab to the outer border of the filter graph element to create streaming ports.
+            </li>
+            <li>
+                Connect the streaming source and sink to the respective streaming port.
+            </li>
+          </ul>
+          <figure class="figure">
+            <img src="screenshots/sdk/the_filter_in_between/the_filter_in_between_streaming_graph.png" class="figure-img img-fluid rounded">
+            <figcaption class="figure-caption">Streaming Graph</figcaption>
+          </figure>
+        </li>
+        <li>
+          Create a filter graph that looks like this
+          <ul>
+            <li>
+                Right click to open a submenu in the filter graph and create a streaming inport and a streaming outport.
+            </li>
+            <li>
+                Provide the names of the respective filter graph streaming ports to connect the filter and the streaming graph.
+            </li>
+            <li>
+              Connect the streaming ports to the respective pins of the filter.
+            </li>
+          </ul>
+          <figure class="figure">
+            <img src="screenshots/sdk/the_filter_in_between/the_filter_in_between_filter_graph.png" class="figure-img img-fluid rounded">
+            <figcaption class="figure-caption">Filter Graph</figcaption>
+          </figure>
+        </li>
+
+        <li>
+          Select the "Happy Character Filter" and edit the "pattern" property. This property defines which chars are filtered by the filter.
+          <figure class="figure">
+            <img src="screenshots/sdk/the_filter_in_between/the_filter_in_between_filter_property.png" class="figure-img img-fluid rounded">
+            <figcaption class="figure-caption">Filter Graph</figcaption>
+          </figure>
+        </li>        <li>Save the project <kbd><kbd>ctrl</kbd> + <kbd>s</kbd></kbd></li>
+        <li>Switch to the <code>Project View</code> tab</li>
+        <li>Right click on the default session and choose "Launch via ADTF Control (Debug)"</li>
+        <li>
+          In the command line of the ADTF Control type <code>rl running</code><br>
+          <figure class="figure">
+            <img src="screenshots/sdk/the_filter_in_between/the_filter_in_between_console_output.png" class="figure-img img-fluid rounded">
+            <figcaption class="figure-caption">Filter output</figcaption>
+          </figure>
+        </li>
+      </ol>
+
+      <p>Congratulations! Now you know how to filter samples from a stream by settings a filter between a streaming source and a streaming sink.</p>
+      
+      <h3>Where to go next?</h3>
+      <p>
+      Have a look at <a href="sdk_properties_filter.html">Properties of ADTF Components</a>
+      to learn how to configure components within ADTF.
+      </p>
+
+        </div>
+    <!-- Optional JavaScript -->
+    <!-- jQuery first, then Popper.js, then Bootstrap JS, then Prism.js-->
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.11.0/umd/popper.min.js" integrity="sha384-b/U6ypiBEHpOf/4+1nzFpr53nxSS+GLCkfwBdFNTxtclqqenISfwAzpKaMNFNmj4" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/js/bootstrap.min.js" integrity="sha384-h0AbiXch4ZDo7tp9hKZ4TsHbi047NrKGLO3SEJAg45jXxnGIfYzk4Si90RDIqNm1" crossorigin="anonymous"></script>
+    <script src="prism/js/prism.js"></script>
+  
+
+  </body>
+
+</html>

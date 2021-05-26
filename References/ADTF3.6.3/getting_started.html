@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+	<meta name="description" content="This guide gives a short example of what you can do with ADTF">
+	<title>ADTF3 Guides - Getting Stared</title>
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/css/bootstrap.min.css" integrity="sha384-/Y6pD6FV/Vv2HJnA6t+vslU6fwYXjCFtcEpHbNJ0lyAFsXTsjBbfaDjzALeQsN6M" crossorigin="anonymous">
+  </head>
+  <body>
+	<div class="container">
+		
+       <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+          <a class="navbar-brand" href="#">ADTF3 Guides</a>
+          <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+              <span class="navbar-toggler-icon"></span>
+          </button>
+          <div class="collapse navbar-collapse" id="navbarSupportedContent">
+
+          </div>
+      </nav>
+
+		<ol class="breadcrumb">
+			<li class="breadcrumb-item"><a href="index.html">Home</a></li>
+			<li class="breadcrumb-item active">Getting Started</li>
+		</ol>
+		<h2>Getting Started</h2>
+		<p>
+			This guide covers getting up and running with ADTF. After reading this guide, you will:
+			<ul>
+				<li>know where the delivered tools are located</li>
+				<li>know the different type of meta files used within ADTF System</li>
+				<li>know how to launch a simple ADTF Session</li>
+				<li>have a basic understanding what ADTF can do for you</li>
+			</ul>
+		</p>
+        
+        <p>
+            <div class="alert alert-warning" role="alert">
+                If not already done, this might be the last chance to get an ADTF License to completely follow this 
+                and all upcoming guides. So please have a look at <a href="tools_licenseviewer.html">here</a> 
+                in this case !
+            </div>
+		</p>
+        
+		<h3>Where do I find the main toolset that make up ADTF?</h3>
+		<p>
+			Have a look inside the <code>bin</code> folder or the directory:
+			<figure class="figure">
+				<img src="screenshots/general/adtf_programs.png" class="figure-img img-fluid rounded">
+				<figcaption class="figure-caption">These are the programs that ship with ADTF</figcaption>
+			</figure><br>
+			If you need debug support, step down one directoy and start the program from the <code>debug</code> folder.
+		</p>
+		<h3>What is ADTF?</h3>
+		<p>
+			ADTF is an application development framework written in the C++ language. It is designed to
+			record data generated from all kind of data sources you find in modern cars, transform, combine or
+			manipulate this data and supply it to any kind of data sink. It allows you to include new devices
+			with little coding effort while making use of a rich set of default components like video or image
+			display, recoder and player.
+		</p>
+        <h3>What are the building blocks of ADTF?</h3>
+		<p>
+			<h4>ADTF System</h4>
+            <p>
+                An <span class="badge badge-light">ADTF System</span> encapsulates all things necessary to get an
+                ADTF Session up and running on different environments.
+                <ul>
+                    <li><span class="badge badge-light">ADTF Plugins</span> (<code>.adtfplugin</code>)</li>
+                    <li><span class="badge badge-light">ADTF Session Services</span> (<code>.adtfplugin</code>)</li>
+                    <li><span class="badge badge-light">ADTF System Services</span> (<code>.adtfplugin</code>)</li>
+                    <li>Platform specific dependencies (shared objects or dynamic libraries used by <code>.adtfplugins</code>)</li>
+                    <li>Environment variables</li>
+                </ul>
+            </p>
+            <p>
+                All of this is saved within a <span class="badge badge-light">ADTF System File</span>
+                which can be recognized by the file ending <code>.adtfsystem</code>.
+            </p>
+            
+            <h4>ADTF Streaming Graph</h4>
+            <p>
+                The <span class="badge badge-light">ADTF Streaming Graph</span> defines the 
+                <span class="badge badge-light">ADTF System's</span> communication interface to
+                <ul>
+                    <li>other ADTF instances</li>
+                    <li>non ADTF Applications</li>
+                    <li>devices like cameras, CAN devices, ethernet devices,...</li>
+                    <li>recording and playback of ADTF DAT Files</li>
+                </ul>
+            </p>
+            <p>
+                The definition is made within a <span class="badge badge-light">ADTF Graph File</span> (<code>.adtfgraph</code>)
+                and can contain one or more ADTF Streaming Graphs.
+            </p>
+            
+            <h4>ADTF Filter Graph</h4>
+            <p>
+                The <span class="badge badge-light">ADTF Filter Graph</span> defines how data and trigger flow through a graph based system where you can
+                <ul>
+                    <li>manipulate data</li>
+                    <li>transforming data</li>
+                    <li>calculate data</li>
+                    <li>displaying data</li>
+                </ul>
+            </p>
+            <p>The definition is made within a <span class="badge badge-light">ADTF Graph File</span> (<code>.adtfgraph</code>) and can contain one or more ADTF Filter Graphs.</p>
+            
+            <h4>ADTF Session</h4>
+            <p>
+                The <span class="badge badge-light">ADTF Session</span> is the file you need in order to launch an ADTF Launcher.
+                Therefore the session selects:
+                <ul>
+                    <li>the <span class="badge badge-light">ADTF System</span> to use (what to load)</li>
+                    <li>the active <span class="badge badge-light">ADTF Streaming Graph</span> (where to get and put streaming data)</li>
+                    <li>the active <span class="badge badge-light">ADTF Filter Graph</span> (what to do)</li>
+                </ul>
+            </p>
+            
+            <p>The definition is made within a <span class="badge badge-light">ADTF Session File</span> (<code>.adtfsession</code>).</p>
+		
+            <h4>ADTF Project</h4>
+            <p>
+                The <span class="badge badge-light">ADTF Project</span> contains all kind of files described previously to run an
+                ADTF Launcher. An <span class="badge badge-light">ADTF Project</span> may contain multiple
+                <span class="badge badge-light">ADTF Filter Graphs</span> ,<span class="badge badge-light">ADTF Sessions</span>,
+                <span class="badge badge-light">ADTF Systems</span> but at least one:
+                <ul>
+                    <li><span class="badge badge-light">ADTF System File</span> (<code>.adtfsystem</code>)</li>
+                    <li><span class="badge badge-light">ADTF Graph File</span> (<code>.adtfgraph</code>)</li>
+                    <li><span class="badge badge-light">ADTF Session File</span> (<code>.adtfsession</code>)</li>
+                </ul>
+                in order to an ADTF Launcher.
+            </p>
+            <p>The definition is made within a <span class="badge badge-light">ADTF Project File</span> (<code>.adtfproject</code>).</p>
+        
+        </p>
+        
+		<h3>How can I launch it?</h3>
+		<p>
+			Let's launch a little example session:
+			<ol>
+				<li>
+					Open a console and go into the <code>bin</code> directory and start the Configuration Editor by typing: <code>adtf_configuration_editor.exe</code>
+				</li>
+				<li>Next open the example project by pressing <kbd><kbd>ctrl</kbd> + <kbd>O</kbd></kbd></li>
+				<li>Enter the path to the project file <code>..\src\examples\projects\ADTF_Project\ADTF Project.adtfproject</code> and press open</li>
+                <li>Right click on Playback Example and choose Launch via ADTF Control</li>
+                <br>
+				<figure class="figure">
+					<img width="300" src="screenshots/tools/adtf_configuration_editor/ce_project_view_context_menu.png" class="figure-img img-fluid rounded">
+					<figcaption class="figure-caption">The project view of the Configuration Editor</figcaption>
+				</figure>
+                <li>Type <code>rl running</code> into the console</li>
+                <br>
+				<figure class="figure">
+					<img src="screenshots/general/adtf_control1.png" class="figure-img img-fluid rounded">
+					<figcaption class="figure-caption">The ADTF Control in form of a console</figcaption>
+				</figure>
+			</ol>
+		</p>
+		<h5>What do I see?</h5>
+		<p>
+			The ADTF Runtime is now in the state running. The loaded ADTF Session replays a previously recorded data stream.
+			The <b>ADTF XSystem</b>, a mashup and handler of different widgets, displays various data contained in the stream and logging. 
+            Furthermore a player control enables the user to start, stop or seek the stream.
+		</p>
+        
+        <div class="alert alert-info" role="alert">
+            The XSystem is a modular view, maybe it won't appear exactly as you can see in the following picture. 
+            This means some widgets are maybe missing or the layout is different. Feel free to move widgets by holding the 
+            task bar of it to drag an drop it to different spaces, tab it to other widgets or whatever you like. 
+            If some widgets are not visible there are two possibilities:
+                <li>The defined runlevel is not already reached, so please increase the runlevel</li>
+                <li>The widget visibility is disabled, so please right-click on any free space in the XSystem Main Window and enable/disable the widgets you like or dislike</li>
+        </div>
+        
+		<figure class="figure">
+			<img src="screenshots/general/adtf_xsystem_mashup.png" class="figure-img img-fluid rounded">
+			<figcaption class="figure-caption">Visualization of a data streams</figcaption>
+		</figure>
+
+		<h3>Where to go next?</h3>
+		<p>
+			Have a look at the <a href="tools_adtf_configuration_editor.html">Configuration Editor guide</a> to learn what's
+			in an ADTF Session and how to set it up.
+		</p>
+
+        </div>
+    <!-- Optional JavaScript -->
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.11.0/umd/popper.min.js" integrity="sha384-b/U6ypiBEHpOf/4+1nzFpr53nxSS+GLCkfwBdFNTxtclqqenISfwAzpKaMNFNmj4" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/js/bootstrap.min.js" integrity="sha384-h0AbiXch4ZDo7tp9hKZ4TsHbi047NrKGLO3SEJAg45jXxnGIfYzk4Si90RDIqNm1" crossorigin="anonymous"></script>
+  
+
+  </body>
+
+</html>

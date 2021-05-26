@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+	<meta name="description" content="This guide explains how to use the ADTF DAT Tool">
+	<title>ADTF3 Guides - ADTF DAT Tool</title>
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/css/bootstrap.min.css" integrity="sha384-/Y6pD6FV/Vv2HJnA6t+vslU6fwYXjCFtcEpHbNJ0lyAFsXTsjBbfaDjzALeQsN6M" crossorigin="anonymous">
+	<link rel="stylesheet" href="font-awesome/css/font-awesome.min.css">
+  </head>
+  <body>
+	<div class="container">
+		
+       <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+          <a class="navbar-brand" href="#">ADTF3 Guides</a>
+          <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+              <span class="navbar-toggler-icon"></span>
+          </button>
+          <div class="collapse navbar-collapse" id="navbarSupportedContent">
+
+          </div>
+      </nav>
+
+		<ol class="breadcrumb">
+			<li class="breadcrumb-item"><a href="index.html">Home</a></li>
+			<li class="breadcrumb-item active">ADTF DAT Tool</li>
+		</ol>
+        
+		<h2><img src="logos/adtf_dattool.png" width="48" height="48"> ADTF DAT Tool</h2>
+		
+        <p>
+			Since ADTF version <span class="badge badge-secondary">3.3.0</span> there is a plugin based command line tool, 
+            based on ADTF File Library to handle and access ADTFDAT Files for read and write using <code>Processors</code> and <code>Readers</code>.            .
+	    </p>
+        
+        <div class="alert alert-warning" role="alert">
+          Since ADTF version <span class="badge badge-secondary">3.4.0</span> the adtfdat_processing library and the tooling are moved 
+          to ADTF File Library, which is delivered in the 3rd Party folder within your ADTF delivery (&lt;ADTF_DIR&gt;/3rdparty/ifhd).
+        </div>
+        
+        <p>
+            ADTFDAT files contain one or more streams representing recorded data. The DAT Tool operates on these streams in one of two ways:
+		</p>
+		<h3>Export Mode</h3>
+		<p>
+			In this mode the DAT Tool makes use of <code>Processors</code> to operate on streams inside the DAT file. 
+            <code>Processors</code> are written by software developers to do versatile data manipulation and extraction. 
+            The file ending of a processor is <code>*.adtffileplugin</code>.
+        </p>
+        <p>
+			Currently the ADTF delivery provides one such <code>Processor</code> to export the samples of a stream into a CSV file (see ADTF File Library).
+			Another processor can be found in the <a href="tutorial_dat_tool_processor.html">programming examples</a> of this guide
+			which is capable of extracting images from a video stream.
+		</p>
+		<p>
+			To extract data from streams of an ADTF DAT file use the <code>--export</code> argument. Select the streams you
+			want to extract by specifying the <code>--stream</code> argument. You can specify a processor for each stream with
+			the --processorid argument. If you do not specify one explicitly, the first one that supports the
+			stream is used. Properties of processors can be specified with the <code>--property</code> argument. The
+			destination filename is specified with the <code>--output</code> argument. Here is an example that exports two
+			streams:
+		</p>
+		<p>
+			<div class="alert alert-secondary" role="alert">
+				<pre>
+					<code>
+adtf_dattool --plugin csv_processor.adtffileplugin --export test.dat --stream in1 --processorid csv --output test_in1.csv --stream in2 --output test_in2.csv
+					</code>
+				</pre>
+			</div>
+			Apply the parameter <code>--liststreams</code> to query all information about a given input (DAT file, or any other supported input).
+			To load additional plugins use the <code>--plugin</code> argument as often as you like.
+		</p>
+
+		<h3>Create Mode</h3>
+		<p>
+			In this mode you can select arbitrary streams (even from multiple DAT files) to create a new DAT file.
+			To do so use the <code>--create</code> argument. The <code>--input</code> argument is used to specify an
+			input file. The <code>--readerid</code> argument can be used to pass in the reader that should be used to read
+			the file. If none is given, the first one that supports the file is used.
+			Set the <code>--start</code> and <code>--end</code> arguments to select the range of the input that should be
+			imported into the new DAT file. To shift the timstamps of all imported stream items apply the <code>--offset</code> parameter.
+			<br>
+			To select streams from an input, use the <code>--stream</code> argument. If you do not select one or more
+			streams explicitly, all streams will be added. Streams can be renamed with the <code>--name</code> argument.
+			<br>
+			Use the <code>--serializerid</code> argument to choose the serializer of your liking. If not specified,
+			<code>sample_copy_serialization.serialization.adtf.cid</code> will be used.
+			<br>
+			Here is an example that creates a new ADTF DAT file from two inputs:
+		</p>
+
+		<div class="alert alert-secondary" role="alert">
+			<pre>
+				<code>
+adtf_dattool --create new.dat --input input1.dat --readerid adtfdat --stream in1 --serializerid special.serialization.adtf.cid --input input2.dat
+				</code>
+			</pre>
+		</div>
+		<h3>Full Command Line Help</h3>
+		<p>
+			The following lists all options the tool supports. Just issue the following command: <code>adtf_dattool.exe --help</code>
+		</p>
+		<div class="alert alert-secondary" role="alert">
+			<pre>
+				<code>
+<table>
+	<tr><td span=2>usage:</td></tr>
+	<tr><td span=2>  adtf_dattool.exe  options</td></tr>
+	<tr><td span=2>&nbsp;</td></tr>
+	<tr><td span=2>where options are:</td></tr>
+	<tr><td>-?, -h, --help</td><td>display usage information</td></tr>
+	<tr><td>--progress</td><td>Show progress</td></tr>
+	<tr><td>--skipstreamtypesandtriggers</td><td>Do not process stream types and triggers</td></tr>
+	<tr><td>--plugin &lt;plugin&gt;</td><td>Load an additional plugin</td></tr>
+	<tr><td>--liststreams &lt;file name&gt;</td><td>List all available information about the given file</td></tr>
+	<tr><td>--export &lt;file name&gt;</td><td>Export streams from the given file</td></tr>
+	<tr><td>--create &lt;file name&gt;</td><td>Create a new dat file</td></tr>
+	<tr><td>--fileversion &lt;adtf2|adtf3&gt;</td><td>File Version of the created file. Creating ADTF 2 files is completely experimental!</td></tr>
+	<tr><td>--input &lt;source&gt;</td><td>Specifies an input for the new dat file</td></tr>
+	<tr><td>--readerid &lt;reader id&gt;</td><td>The id of the reader implementation that should be used to open the last input source</td></tr>
+	<tr><td>--start &lt;timestamp&gt;</td><td>Process only chunks of the last input source with timestamps larger than this (microseconds)</td></tr>
+	<tr><td>--end &lt;timestamp&gt;</td><td>Process only chunks of the last input source with timestamps smaller than this (microseconds)</td></tr>
+	<tr><td>--offset &lt;timestamp&gt;</td><td>This offset is added to all chunk timestamps of the last input source</td></tr>
+	<tr><td>--stream &lt;stream name&gt;</td><td>Select a stream for export or when creating a new dat file</td></tr>
+	<tr><td>--name &lt;stream name&gt;</td><td>Sets the name for the last specified stream that is used in the newly created dat file</td></tr>
+	<tr><td>--processorid &lt;processor id&gt;</td><td>The id of the processor implementation used for the last specified stream</td></tr>
+	<tr><td>--property &lt;name=value&gt;</td><td>Sets a property of the last specified stream or input</td></tr>
+	<tr><td>--output &lt;file name&gt;</td><td>Sets the output file name for the last specified stream</td></tr>
+	<tr><td>--serializerid &lt;serializer id&gt;</td><td>The id of the serializer implementation used for the last specified stream</td></tr>
+</table> 
+				</code>
+			</pre>
+		</div>
+        
+        <h3>Where to go next?</h3>
+        <p>
+            Enough about tooling and basics, it's time to have a look at API and start with <a href="sdk_adtf_cmake_basics.html">CMake</a>.
+        </p>
+
+        </div>
+    <!-- Optional JavaScript -->
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.11.0/umd/popper.min.js" integrity="sha384-b/U6ypiBEHpOf/4+1nzFpr53nxSS+GLCkfwBdFNTxtclqqenISfwAzpKaMNFNmj4" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/js/bootstrap.min.js" integrity="sha384-h0AbiXch4ZDo7tp9hKZ4TsHbi047NrKGLO3SEJAg45jXxnGIfYzk4Si90RDIqNm1" crossorigin="anonymous"></script>
+  
+
+  </body>
+
+</html>

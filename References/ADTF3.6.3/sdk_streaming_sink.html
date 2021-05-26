@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<!-- Required meta tags -->
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+	<meta name="description" content="This guide explains how to plugin data sinks that are outside of ADTF">
+	<title>ADTF3 Guides - Streaming Sink</title>
+	<!-- Bootstrap CSS -->
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/css/bootstrap.min.css" integrity="sha384-/Y6pD6FV/Vv2HJnA6t+vslU6fwYXjCFtcEpHbNJ0lyAFsXTsjBbfaDjzALeQsN6M" crossorigin="anonymous">
+	<!-- Prism Syntax Highlighting CSS -->
+	<link rel="stylesheet" href="prism/css/prism.css">
+</head>
+<body>
+	<div class="container">
+  
+		
+       <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+          <a class="navbar-brand" href="#">ADTF3 Guides</a>
+          <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+              <span class="navbar-toggler-icon"></span>
+          </button>
+          <div class="collapse navbar-collapse" id="navbarSupportedContent">
+
+          </div>
+      </nav>
+
+
+		<ol class="breadcrumb">
+		  <li class="breadcrumb-item"><a href="index.html">Home</a></li>
+		  <li class="breadcrumb-item active">Streaming Sink</li>
+		</ol>
+
+		<h2>Streaming Sink</h2>
+		<p>
+			This guide is about elements which can consume data. After reading this guide, you will know:
+		  <ul>
+			<li>What makes up a streaming sink</li>
+			<li>How to implement a simple streaming sink</li>
+		  </ul>
+		</p>
+
+		<h3>What is a streaming sink?</h3>
+		<p>
+		  A streaming sink accepts data from the streaming graph or filter graph and consumes it e.g. by displaying
+		  the data or sending it to a device outside the ADTF system. The sink therefor acts like a bridge between
+			the data fomat of ADTF and the data format expected by the external device. If you are looking for a more
+			comprehensive explanation of what streaming sinks are follow this 
+			<a href="../adtf_html/page_streaming_service.html">link</a>.
+		</p>
+
+    <h3>Create the CMakeLists.txt</h3>
+		<p>
+			For this example we create a streaming sink that accepts characters. The CMakeLists.txt looks like this:
+			<pre>
+			  <code class="language-cmake">
+cmake_minimum_required (VERSION 3.10)
+project (CharacterStreamingSink)
+
+set (STREAMING_SINK_NAME happy_character_sink)
+
+if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/happy_character_sink.h)
+  file(WRITE happy_character_sink.h)
+endif()
+if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/happy_character_sink.cpp)
+  file(WRITE happy_character_sink.cpp)
+endif()
+
+find_package(ADTF COMPONENTS systemsdk REQUIRED)
+
+set (EXAMPLE_SOURCES happy_character_sink.h
+                     happy_character_sink.cpp)
+
+# Adds the happy_character_sink project to the Visual Studio solution, which when build
+# creates a shared object called happy_character_sink.adtfplugin
+adtf_add_streaming_service(${STREAMING_SINK_NAME} ${EXAMPLE_SOURCES})
+									   
+adtf_install_plugin(${STREAMING_SINK_NAME} src/examples/bin)
+
+# Generate a plugindescription for our filter
+adtf_create_plugindescription(TARGET ${STREAMING_SINK_NAME} PLUGIN_SUBDIR "src/examples/bin")
+        </code>
+      </pre>
+    </p>
+
+    <h3>Use the CMake-GUI to configure relevant properties</h3>
+    Switch to the CMake-GUI and follow these steps:
+    <ul>
+      <li>
+        Run your <code>cmake-gui.exe</code> to open the graphical user interface
+      </li>
+      <li>
+        Fill in where CMake can find your source code (and the created <code>CMakeLists.txt</code> file)
+      </li>
+      <li>
+        Fill in a <code>build</code> folder (this is where all the build stuff goes)
+      </li>
+      <li>
+        Press the <code>Configure</code> button
+      </li>
+			<li>
+				Expand the entry <code>Ungrouped Entries</code> and you will see that the value for the variable <code>ADTF_DIR</code> is not set.
+				To fix this click into the "Value" Column and fill in the path to your ADTF directory.
+			</li>
+			<li>
+				Expand the entry <code>CMAKE</code> and search for the variable <code>CMAKE_INSTALL_PREFIX</code>.
+				By default this variable points to an absolute path with administration privileges which can be a problem.
+				Set the variable also to your ADTF directory e.g. <code>D:/ADTF/3.4.0</code>.
+				<div class="alert alert-warning" role="alert">
+					Avoid using admin-permission directories. This can cause CMake to fail due to missing permissions.
+				</div>
+			</li>
+			<li>
+				Once again click the <code>Configure</code> button
+			</li>
+			<li>
+				Now you should get the "Configuring done" log message and you can click the <code>Generate</code> button
+			</li>
+			<li>
+				If everything is fine you get the "Generating done" log message. Click the <code>Open Project</code> button to start Visual Studio
+			</li>
+    </ul>
+    
+    <div class="alert alert-info" role="alert">
+        If you have any problems during this phase have a look at <a href="sdk_adtf_cmake_basics.html">ADTF related CMake</a>
+    </div>
+    
+    <h3>Implement the streaming source inside Visual Studio</h3>
+    <ul>
+			<li>
+                                Open the <code>happy_character_sink.h</code> file and add this minimal streaming sink declaration:
+				<pre>
+					<code class="language-cpp">
+#pragma once
+
+// Include all necessary headers from the ADTF SDK
+#include &lt;adtffiltersdk/adtf_filtersdk.h&gt;
+
+// For simplicity use the necessary namespaces
+using namespace adtf::ucom;
+using namespace adtf::base;
+using namespace adtf::streaming;
+using namespace adtf::mediadescription;
+
+// A very simple streaming sink for samples which contain characters.
+// Received characters get dumped to the console.
+// To implement a Sample Streaming Sink, subclass adtf::filter::cSampleStreamingSink
+class cHappyCharacterSink : public adtf::filter::cSampleStreamingSink
+{
+public:
+    // This macros provides some meta information about our Sink Implementation
+    // This will be exposed by the plugin class factory.
+    ADTF_CLASS_ID_NAME(cHappyCharacterSink,
+                       &quot;happy_character_sender.streaming_sink.adtf_guides.cid&quot;,
+                       &quot;Happy Character Sender&quot;);
+
+    // We setup Pins in the constructor
+    cHappyCharacterSink();
+
+    // This method will be called when a trigger occours via our input Pin.
+    tResult ProcessInput(ISampleReader* pReader,
+                         const iobject_ptr&lt;const ISample&gt;&amp; pSample) override;
+};
+
+					</code>
+				</pre>
+			</li>
+			<li>
+                                Open the <code>happy_character_sink.cpp</code> file and add this minimal streaming sink definition:
+				<pre>
+					<code class="language-cpp">
+#include &quot;happy_character_sink.h&quot;
+
+// The code behind the macro creates a plugin and the main entries to the plugin DLL or shared object.
+// The cHappyCharacterSink will be available through the plugins class factory.
+ADTF_PLUGIN(&quot;Happy Character Sink&quot;, cHappyCharacterSink);
+
+// this is our input data
+struct tSimple
+{
+    tChar cValue;
+};
+
+cHappyCharacterSink::cHappyCharacterSink()
+{
+    // create a type definition from our existing struct definiton
+    auto oStructureDefiniton = structure&lt;tSimple&gt;(&quot;tSimple&quot;)
+                               .Add(&quot;cValue&quot;, &amp;tSimple::cValue);
+
+    // and our Input Pin.
+    CreateInputPin(&quot;charIn&quot;, oStructureDefiniton);
+}
+
+tResult cHappyCharacterSink::ProcessInput(ISampleReader* /*pReader*/,
+                                          const iobject_ptr&lt;const ISample&gt;&amp; pSample)
+{
+    // We use the sample_data template to access the data stored within the sample
+    // This behaves just like a tSimple pointer.
+    sample_data&lt;tSimple&gt; oInputData(pSample);
+
+    LOG_INFO(&quot;Happy Character Sink received: %c&quot;, oInputData-&gt;cValue);
+
+    RETURN_NOERROR;
+}
+
+					</code>
+				</pre>
+			</li>
+			<li>
+				Build the solution with Visual Studio to get the shared object <code>*.adtfplugin</code><br>
+			</li>
+			<li>
+				Build the "INSTALL" project with Visual Studio (this step deploys the created <code>*.plugindescription</code> files)<br>
+			</li>
+			<li>
+				Now you have a brand new character streaming sink which logs the generated characters to the console when activated. You
+                                can find the generated <code>happy_character_sink.adtfplugin</code> and <code>happy_character_sink.plugindescription</code>
+				in the <code>src\examples\bin\debug</code> folder of your ADTF directory.<br>
+				<figure class="figure">
+					<img src="screenshots/sdk/streaming_sink/streaming_sink_files.png" class="figure-img img-fluid rounded">
+					<figcaption class="figure-caption">Generated files</figcaption>
+				</figure>
+			</li>
+		</ul>
+    
+    <h3>Build an ADTF Session for our new streaming sink</h3>
+    <p>Fire up the Configuration Editor</p>
+    <ol>
+      <li>Create a new project</li>
+      <li>Select the <code>Streaming Graph Editor</code> tab</li>
+      <li>Next click on the <code>Components</code> tab</li>
+      <li>Drag and drop the new <code>Happy Character Source</code> from the <code>Components</code> tab into the <code>Streaming Graph Editor</code></li>
+      <li>Drag and drop the new <code>Happy Character Sink</code> from the <code>Components</code> tab into the <code>Streaming Graph Editor</code></li>
+      <li>
+        Drag and drop a <code>Sample Stream</code> from the <code>Components</code> tab into the <code>Streaming Graph Editor</code> and connect it to the <code>Source</code> and <code>Sink</code><br>
+        <figure class="figure">
+          <img src="screenshots/sdk/streaming_sink/streaming_sink_streaming_graph.png" class="figure-img img-fluid rounded">
+          <figcaption class="figure-caption">Streaming output</figcaption>
+        </figure>
+      </li>
+	  <li>Save the project <kbd><kbd>ctrl</kbd> + <kbd>s</kbd></kbd></li>
+      <li>Switch to the <code>Project View</code> tab</li>
+      <li>Right click on the session and choose <code>Launch via ADTF control</code></li>
+      <li>
+        In the command line of the ADTF Control type <code>rl running</code><br>
+        <figure class="figure">
+          <img src="screenshots/sdk/streaming_sink/char_streaming_sink_console_output.png" class="figure-img img-fluid rounded">
+          <figcaption class="figure-caption">Streaming output</figcaption>
+        </figure>
+      </li>
+    </ol>
+
+    <p>Congratulations! Now you have an idea of how to consume available data streams in the ADTF system.</p>
+	
+	<h3>Where to go next?</h3>
+      <p>
+        Have a look at <a href="sdk_the_filter_in_between.html">the filter in between</a>
+        to learn who are the filters in between streaming sources and sinks.
+      </p>
+    
+
+        </div>
+	  <!-- Optional JavaScript -->
+	  <!-- jQuery first, then Popper.js, then Bootstrap JS, then Prism.js-->
+	  <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+	  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.11.0/umd/popper.min.js" integrity="sha384-b/U6ypiBEHpOf/4+1nzFpr53nxSS+GLCkfwBdFNTxtclqqenISfwAzpKaMNFNmj4" crossorigin="anonymous"></script>
+	  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/js/bootstrap.min.js" integrity="sha384-h0AbiXch4ZDo7tp9hKZ4TsHbi047NrKGLO3SEJAg45jXxnGIfYzk4Si90RDIqNm1" crossorigin="anonymous"></script>
+	  <script src="prism/js/prism.js"></script>
+	
+
+  </body>
+
+</html>

@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- Required meta tags -->
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <meta name="description" content="This guide explains how to generate data and send it into the ADTF filter graph">
+  <title>ADTF3 Guides - Data Generator Filter Tutorial</title>
+  <!-- Bootstrap CSS -->
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/css/bootstrap.min.css" integrity="sha384-/Y6pD6FV/Vv2HJnA6t+vslU6fwYXjCFtcEpHbNJ0lyAFsXTsjBbfaDjzALeQsN6M" crossorigin="anonymous">
+  <!-- Prism Syntax Highlighting CSS -->
+  <link rel="stylesheet" href="prism/css/prism.css">
+</head>
+<body>
+  <div class="container">
+    
+       <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+          <a class="navbar-brand" href="#">ADTF3 Guides</a>
+          <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+              <span class="navbar-toggler-icon"></span>
+          </button>
+          <div class="collapse navbar-collapse" id="navbarSupportedContent">
+
+          </div>
+      </nav>
+
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="index.html">Home</a></li>
+      <li class="breadcrumb-item active">Data Generator Filter Tutorial</li>
+    </ol>
+    <h2>Data Generator Filter Tutorial</h2>
+    <p>
+      This guide covers creating a simple ADTF filter that generates data samples and forwards them to a data sink.
+      After reading this guide, you will know how to:
+      <ul>
+        <li>create a simple time triggered ADTF filter</li>
+        <li>create properties which a user can modify in the <a href="tools_adtf_configuration_editor.html">Configuration Editor</a></li>
+        <li>create simple data samples</li>
+        <li>send those data samples to a data sink</li>
+      </ul>
+    </p>
+    <h3>Where are we?</h3>
+    <p>
+      In the <a href="tutorial_filter_processor.html">Data Filter Processor Tutorial</a>
+      we created a filter that:
+      <ul>
+        <li>
+          receives two data samples containing a velocity and a yaw rate value
+        </li>
+        <li>
+          uses those values to calculate a kappa value
+        </li>
+        <li>
+          logs some kappa values to the console
+        </li>
+        <li>
+          sends all kappa values to a data sink
+        </li>
+      </ul>
+    </p>
+
+    <p>
+      Now we need to create a filter that:
+      <ul>
+        <li>
+          generates velocity and yaw rate data samples
+        </li>
+        <li>
+          forwards those data samples to our previously created <a href="tutorial_filter_processor.html">Data Processor Filter</a> (or any other data sink)
+        </li>
+      </ul>
+    </p>
+
+    <h3>How to create a simple data generator filter?</h3>
+
+    <p>
+      First, create a new filter project for the data generator filter using CMake.
+    <p>
+
+    <pre>
+<code class="language-cmake">
+cmake_minimum_required (VERSION 3.10)
+project (DataGenerator)
+
+set (DATA_GENERATOR_FILTER tutorial_filter_data_generator)
+
+if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/tutorial_filter_data_generator.h)
+  file(WRITE tutorial_filter_data_generator.h)
+endif()
+if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/tutorial_filter_data_generator.cpp)
+  file(WRITE tutorial_filter_data_generator.cpp)
+endif()
+
+find_package(ADTF COMPONENTS filtersdk)
+
+# Adds the data_generator_filter project to the Visual Studio solution, which when build
+# creates a shared object called data_generator_filter.adtfplugin
+adtf_add_filter(${DATA_GENERATOR_FILTER} tutorial_filter_data_generator.h tutorial_filter_data_generator.cpp)
+
+# Adds the INSTALL project to the Visual Studio solution, which when build
+# copies our filter to the subdirectory given as the second argument into ${CMAKE_INSTALL_PREFIX}
+adtf_install_filter(${DATA_GENERATOR_FILTER} src/examples/bin)
+
+# Generate a plugindescription for our filter
+adtf_create_plugindescription(TARGET ${DATA_GENERATOR_FILTER} PLUGIN_SUBDIR "src/examples/bin")
+</code>
+    </pre>
+
+    <p>
+        Now use the CMake-GUI to fill in all the information required by CMake to create the Visual Studio solution.
+        If you need help have a look at the <a href="sdk_adtf_cmake_basics.html#VisualStudioSolution">CMake-GUI</a>.
+        Then open the<code>data_generator_filter</code>project in the solution explorer.
+    </p>
+
+    <p>
+      Open the tutorial_filter_data_generator header and source files in Visual
+      Studio.
+    </p>
+    <figure class="figure">
+      <img src="screenshots/tutorials/filter_generator/vs_projects_explorer_generator.png" class="figure-img img-fluid rounded">
+      <figcaption class="figure-caption">Visual Studio - Solution Explorer</figcaption>
+    </figure>
+    <br>
+      
+    <h4>The header file of the filter</h4>
+    <p>
+        Just like before we continue by creating our <a href="src/tutorial_filter_data_generator.h">tutorial_filter_data_generator.h</a>
+        header file.
+    </p>
+          <pre>
+            <code class="language-cpp">
+/**
+ *
+ * ADTF Tutorial filter for data processing
+ *
+ */
+#pragma once
+
+// Include all necessary headers from the ADTF SDK
+#include &lt;adtffiltersdk/adtf_filtersdk.h&gt;
+
+// For simplicity use the necessary namespaces
+using namespace adtf::util;
+using namespace adtf::ucom;
+using namespace adtf::base;
+using namespace adtf::streaming;
+using namespace adtf::mediadescription;
+using namespace adtf::filter;
+
+// Now we declare a new class cTutorialFilterDataGenerator that
+// inherits from cFilter. This will be our Tutorial Filter.
+class cTutorialFilterDataGenerator: public cFilter
+{
+public:
+    // Inside the class declaration we use an ADTF macro to enable correct treatment
+    // of class identifier and class name by IClassInfo and the class factories.
+    ADTF_CLASS_ID_NAME(cTutorialFilterDataGenerator,
+                       &quot;tutorial_data_generator.filter.adtf_guides.cid&quot;,
+                       &quot;Tutorial Data Generator&quot;);
+
+public:
+    // We implement the constructor where we create our Pins and Runners.
+    cTutorialFilterDataGenerator();
+
+    // We override the Process method in order to handle triggers from the
+    // connected Active Runner.
+    tResult Process(tNanoSeconds tmTrigger, IRunner* pRunner) override;
+
+private:
+    // Some helper methods.
+    tFloat32 CalculateVelocityValue();
+    tFloat32 CalculateYawRateValue();
+
+    // Our writers for our output data.
+    ISampleWriter* m_pVelocityWriter;
+    ISampleWriter* m_pYawRateWriter;
+
+    // Defines property variables, this properties will occur within your property set
+    // You still need to register with name in the contructor.
+    // Defines the change rates for the velocity/yaw rate values.
+    property_variable&lt;tFloat32&gt; m_fVelocityChangeRate = 5.0;
+    property_variable&lt;tFloat32&gt; m_fYawRateChangeRate = 1.0;
+    // Defines the max values for velocity and yaw rate.
+    property_variable&lt;tFloat32&gt; m_fVelocityMax = 100.0;
+    property_variable&lt;tFloat32&gt; m_fYawRateMax = 10.0;
+
+    // Store the current values.
+    tFloat32 m_fCurrentVelocity = 50.0;
+    tFloat32 m_fCurrentYawRate = 10.0;
+};
+
+            </code>
+          </pre>
+        </p>
+
+
+        <h4>The source file of the filter</h4>
+        <p>
+          Now we need to write the <a href="src/tutorial_filter_data_generator.cpp">tutorial_filter_data_generator.cpp</a> source file.
+        </p>        
+          <pre>
+            <code class="language-cpp">
+/**
+*
+* ADTF Tutorial Filter for data processing
+*
+*/
+#include &quot;tutorial_filter_data_generator.h&quot;
+
+// The code behind the macro creates a plugin and the main entries to the plugin DLL or shared object.
+// The cTutorialFilterDataGenerator will be available through the plugins class factory.
+ADTF_PLUGIN(&quot;ADTF Tutorial Filter Data Generator Plugin&quot;, cTutorialFilterDataGenerator);
+
+cTutorialFilterDataGenerator::cTutorialFilterDataGenerator()
+{
+    // Create our output pins with a simple plain stream type.
+    m_pVelocityWriter = CreateOutputPin(&quot;velocity&quot;, stream_type_plain&lt;tFloat32&gt;());
+    m_pYawRateWriter = CreateOutputPin(&quot;yawrate&quot;, stream_type_plain&lt;tFloat32&gt;());
+
+    // Now create our Runner and give the Configuration Editor a hint on which
+    // Active Runner to connect to it. In this case a Timer Runner.
+    CreateRunner(&quot;generate_data&quot;, cTimerTriggerHint(std::chrono::seconds(1)));
+
+    // And register your Property Variables to make them accessible via the
+    // configuration.
+    RegisterPropertyVariable(&quot;velocity_change_rate&quot;, m_fVelocityChangeRate);
+    RegisterPropertyVariable(&quot;yaw_rate_change_rate&quot;, m_fYawRateChangeRate);
+    RegisterPropertyVariable(&quot;velocity_max_value&quot;, m_fVelocityMax);
+    RegisterPropertyVariable(&quot;yaw_rate_max_value&quot;, m_fYawRateMax);
+}
+
+// This function will be executed each time a trigger for the &quot;generate_data&quot; Runner occurs
+tResult cTutorialFilterDataGenerator::Process(tNanoSeconds tmTrigger, IRunner* /*pRunner*/)
+{
+    // To create output data use the output_sample_data template
+    // This will handle sample allocation for you and you can use it just
+    // like its template parameter type.
+    output_sample_data&lt;tFloat32&gt; fVelocity(tmTrigger, CalculateVelocityValue());
+
+    // Write it to the connected Sample Stream.
+    // Do not call any methods of output_sample_data after you have called Release() which
+    // hands over the sample instance.
+    m_pVelocityWriter-&gt;Write(fVelocity.Release());
+
+    // we do the same for the yaw rate
+    output_sample_data&lt;tFloat32&gt; fYawRate(tmTrigger, CalculateYawRateValue());
+    m_pYawRateWriter-&gt;Write(fYawRate.Release());
+
+    RETURN_NOERROR;
+}
+
+tFloat32 cTutorialFilterDataGenerator::CalculateVelocityValue()
+{
+    // negate the velocity change rate if the max/min values are reached
+    if ((m_fCurrentVelocity - std::abs(m_fVelocityChangeRate)) &lt;= 0 ||
+        m_fCurrentVelocity &gt; m_fVelocityMax)
+    {
+        m_fVelocityChangeRate = -m_fVelocityChangeRate;
+    }
+
+    m_fCurrentVelocity += m_fVelocityChangeRate;
+
+    LOG_INFO(&quot;Data Generator: Velocity: %f&quot;, m_fCurrentVelocity);
+
+    return m_fCurrentVelocity;
+}
+
+tFloat32 cTutorialFilterDataGenerator::CalculateYawRateValue()
+{
+    // negate the yaw rate change rate if the max/min values are reached
+    if ((m_fCurrentYawRate - std::abs(m_fYawRateChangeRate)) &lt;= 0 ||
+        m_fCurrentYawRate &gt; m_fYawRateMax)
+    {
+        m_fYawRateChangeRate = -m_fYawRateChangeRate;
+    }
+
+    m_fCurrentYawRate += m_fYawRateChangeRate;
+
+    LOG_INFO(cString::Format(&quot;Data Generator: Yaw Rate: %f&quot;, m_fCurrentYawRate).GetPtr());
+
+    return m_fCurrentYawRate;
+}
+
+            </code>
+          </pre>
+        </p>
+        <p>
+          Finally we need to build the Project.
+        </p>
+        <p>
+          Now we want to integrate and test our filters in an <code>ADTF Project</code>.
+          We can accomplish this using the <a href="tools_adtf_configuration_editor.html">Configuration Editor</a>.
+        </p>
+        <h3>Where to go next?</h3>
+        <p>
+          Have a look at the <a href="tutorial_adtf_project.html">ADTF Project Tutorial</a>.
+        </p>
+
+        </div>
+  <!-- Optional JavaScript -->
+  <!-- jQuery first, then Popper.js, then Bootstrap JS, then Prism.js-->
+  <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.11.0/umd/popper.min.js" integrity="sha384-b/U6ypiBEHpOf/4+1nzFpr53nxSS+GLCkfwBdFNTxtclqqenISfwAzpKaMNFNmj4" crossorigin="anonymous"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/js/bootstrap.min.js" integrity="sha384-h0AbiXch4ZDo7tp9hKZ4TsHbi047NrKGLO3SEJAg45jXxnGIfYzk4Si90RDIqNm1" crossorigin="anonymous"></script>
+  <script src="prism/js/prism.js"></script>
+
+
+  </body>
+
+</html>

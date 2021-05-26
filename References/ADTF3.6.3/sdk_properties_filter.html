@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- Required meta tags -->
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+        <meta name="description" content="This guide shows how to use Properties to define the behaviour of an ADTF Component.">
+        <title>ADTF3 Guides - Properties</title>
+  <!-- Bootstrap CSS -->
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/css/bootstrap.min.css" integrity="sha384-/Y6pD6FV/Vv2HJnA6t+vslU6fwYXjCFtcEpHbNJ0lyAFsXTsjBbfaDjzALeQsN6M" crossorigin="anonymous">
+  <!-- Prism Syntax Highlighting CSS -->
+  <link rel="stylesheet" href="prism/css/prism.css">
+</head>
+<body>
+  <div class="container">
+    
+       <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+          <a class="navbar-brand" href="#">ADTF3 Guides</a>
+          <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+              <span class="navbar-toggler-icon"></span>
+          </button>
+          <div class="collapse navbar-collapse" id="navbarSupportedContent">
+
+          </div>
+      </nav>
+
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="index.html">Home</a></li>
+        <li class="breadcrumb-item active">Properties of ADTF Components</li>
+      </ol>
+      <h2>Properties of ADTF Components</h2>
+      <p>
+        This guide teaches you how to:
+        <ul>
+          <li>Use so called Property Variables to add, set or get Properties and its values to your ADTF Components</li>
+        </ul>
+      </p>
+      
+      <div class="alert alert-info" role="alert">
+			This guide will show you the behaviour within a <a href="sdk_filter_mechanics.html">Filter</a>. 
+            Note that you can use the same property mechanism within your <a href="sdk_streaming_source.html">Streaming Sources</a> / <a href="sdk_streaming_sink.html">Streaming Sinks</a> and <a href="sdk_system_service.html">ADTF System Services</a>.
+      </div>
+
+      <h3>Property Variables</h3>
+      <p>
+      Property Variables are members of your Filter class and are linked to a Property. These members will always reflect the value of the assigned Property.
+      Use the <code>adtf::base::property_variable</code> template to create Property Variables of the required type.
+      </p>
+
+      <h3>Implement a Filter that has Properties</h3>
+      <p>
+      <ul>
+        <li>
+          First let us define a new Filter (<a href="src/properties_filter.h">properties_filter.h</a>):
+          <pre>
+            <code class="language-cpp">
+#pragma once
+
+// Include all necessary headers from the ADTF SDK
+#include &lt;adtffiltersdk/adtf_filtersdk.h&gt;
+
+// For simplicity use the necessary namespaces
+using namespace adtf::util;
+using namespace adtf::ucom;
+using namespace adtf::base;
+using namespace adtf::streaming;
+using namespace adtf::filter;
+
+// To implement a Filter we subclass adtf::filter::cFilter
+class cPropertiesFilter: public cFilter
+{
+public:
+    // This macros provides some meta information about our Filter Implementation
+    // This will be exposed by the plugin class factory.
+    ADTF_CLASS_ID_NAME(cPropertiesFilter,
+                       &quot;properties_filter.filter.adtf_guides.cid&quot;,
+                       &quot;Properties Filter&quot;);
+
+public:
+    // In the constructor, we setup all aspects of our Filter.
+    cPropertiesFilter();
+
+    tResult Init(tInitStage eStage) override;
+
+private:
+    // Here are all the Property Variables for our Filter
+    property_variable&lt;tFloat64&gt; m_fFloatProperty = 3.1415;
+
+    property_variable&lt;tUInt32&gt; m_nGroupedProperty1 = 1;
+    property_variable&lt;tUInt32&gt; m_nGroupedProperty2 = 2;
+
+    property_variable&lt;cString&gt; m_strListProperty1 = {&quot;device1&quot;};
+
+    enum tMyEnum: tInt32
+    {
+        eFirst = 0,
+        eSecond = 1,
+        eThird = 2,
+    };
+    property_variable&lt;tMyEnum&gt; m_eEnumProperty = eFirst;
+
+    property_variable&lt;tUInt32&gt; m_nHiddenProperty = 3;
+};
+
+            </code>
+          </pre>
+        </li>
+        <li>
+            Then let's implement it (<a href="src/properties_filter.cpp">properties_filter.cpp</a>):
+            <pre>
+                <code class="language-cpp">
+#include &quot;properties_filter.h&quot;
+
+// The code behind the macro creates a plugin and the main entries to the plugin DLL or shared object.
+// The cPropertyFilter will be available through the plugins class factory.
+ADTF_PLUGIN(&quot;Properties Filter Plugin&quot;,
+            cPropertiesFilter);
+
+cPropertiesFilter::cPropertiesFilter()
+{
+    // We register all our &quot;visible&quot; Property Variables in the Constructor.
+
+    // you can set descriptions for properties, these will be shown in a tooltip when the use hovers
+    // over the name of the Property in the Configuration editor.
+    m_fFloatProperty.SetDescription(&quot;A property that holds floating-point values&quot;);
+    // This is a hint for the Configuration Editor that defines a range of valid Property values.
+    m_fFloatProperty.SetValidRange(0.0, 10.0);
+    // Register the property variable.
+    RegisterPropertyVariable(&quot;float_property&quot;, m_fFloatProperty);
+
+    // To group or organise properties you can create a tree structure.
+    RegisterPropertyVariable(&quot;group/property1&quot;, m_nGroupedProperty1);
+    RegisterPropertyVariable(&quot;group/property2&quot;, m_nGroupedProperty2);
+
+    // This gives the user a list of Property value choices.
+    m_strListProperty1.SetValueList({{&quot;device1&quot;, &quot;Nice Device&quot;},
+                                     {&quot;device2&quot;, &quot;Super Nice Device&quot;},
+                                     {&quot;device3&quot;, &quot;Awesome Device&quot;}});
+    RegisterPropertyVariable(&quot;string_property&quot;, m_strListProperty1);
+
+    // Enums are mapped to Properties of the underlying type.
+    // Here we offer the user a list to choose from.
+    m_eEnumProperty.SetValueList({{eFirst, &quot;First&quot;},
+                                  {eSecond, &quot;Second&quot;},
+                                  {eThird, &quot;Third&quot;}});
+    RegisterPropertyVariable(&quot;enum_property&quot;, m_eEnumProperty);
+}
+
+tVoid function_that_takes_an_integer(tUInt32)
+{
+}
+
+tResult cPropertiesFilter::Init(tInitStage eStage)
+{
+    RETURN_IF_FAILED(cFilter::Init(eStage));
+
+    // Note that the Property values are updated from the ADTF Properties File of the current Session
+    // right before Init is called with eStage == StageNormal. So you can access these settings from
+    // this point of your Filter life-cycle onwards.
+    if (eStage == StageNormal)
+    {
+        // If you register a property variable in StageNormal, the associated Property will not be made
+        // available via the plugin description and thus not shown in the Configuration Editor.
+        // To set it, manually add it to the .adtfproperties file.
+        RegisterPropertyVariable(&quot;hidden_property&quot;, m_nHiddenProperty);
+
+        // to access the values of a Property Variable you can either just pass it to methods that
+        // take parameters of the type of the property variable
+        function_that_takes_an_integer(m_nGroupedProperty1);
+
+        // or use it in calculations
+        auto fProduct = m_fFloatProperty * m_nGroupedProperty2;
+        LOG_INFO(&quot;product = %f&quot;, fProduct);
+
+        // or use the pointer operator to access member methods
+        LOG_INFO(&quot;string_property value is %u characters long.&quot;,
+                 m_strListProperty1-&gt;GetLength());
+
+        // or dereference them manually
+        LOG_INFO(&quot;My properties are set to:\n&quot;
+                 &quot; float_property = %f\n&quot;
+                 &quot; group/property1 = %u\n&quot;
+                 &quot; group/property2 = %u\n&quot;
+                 &quot; string_property = %s\n&quot;
+                 &quot; enum_property = %d\n&quot;
+                 &quot; hidden_property = %u&quot;,
+                 *m_fFloatProperty,
+                 *m_nGroupedProperty1,
+                 *m_nGroupedProperty2,
+                 m_strListProperty1-&gt;GetPtr(),
+                 *m_eEnumProperty,
+                 *m_nHiddenProperty);
+    }
+
+    RETURN_NOERROR;
+}
+
+            </code>
+          </pre>
+        </li>        
+      </ul>
+      </p>
+        
+      <h3>Edit Properties in the ADTF Configuration Editor</h3>
+      <p>
+      After you have built this filter you can add it by drag and drop from the Component View to a Filter Graph within the <a href="tools_adtf_configuration_editor.html">ADTF Configuration Editor</a>. 
+      Select/click on the Filter let's you edit the Properties in the <a href="tools_adtf_configuration_editor.html#property_editor">Property Editor</a>:
+      <figure class="figure">
+        <img width="50%" src="screenshots/sdk/properties_filter/properties_filter_property_editor.png" class="figure-img img-fluid rounded">
+        <figcaption class="figure-caption">Properties of our Filter in the Property Editor</figcaption>
+      </figure>
+      </p>
+
+      <h3>React to Property Changes</h3>
+      If you need to react to Property changes within your ADTF Component, you can implement the <code>IPropertyObserver</code> interface. Please have a look at the following example filter:
+      <p>
+      <ul>
+        <li>
+          First let us define a new Filter (<a href="src/properties_observer_filter.h">properties_observer_filter.h</a>):
+          <pre>
+            <code class="language-cpp">
+#pragma once
+
+// Include all necessary headers from the ADTF SDK
+#include &lt;adtffiltersdk/adtf_filtersdk.h&gt;
+
+// For simplicity use the necessary namespaces
+using namespace adtf::util;
+using namespace adtf::ucom;
+using namespace adtf::base;
+using namespace adtf::streaming;
+using namespace adtf::filter;
+
+// To implement a Filter we subclass adtf::filter::cFilter.
+// We implement IPropertyObserver as well in order to be notified about changes to our Properties.
+class cPropertiesObserverFilter: public cFilter, public IPropertyObserver
+{
+public:
+    // This macros provides some meta information about our Filter Implementation
+    // This will be exposed by the plugin class factory.
+    ADTF_CLASS_ID_NAME(cPropertiesObserverFilter,
+                       &quot;properties_observer_filter.filter.adtf_guides.cid&quot;,
+                       &quot;Properties Observer Filter&quot;);
+
+public:
+    // In the constructor, we setup all aspects of our Filter.
+    cPropertiesObserverFilter();
+
+    // This is our callback implementation.
+    tVoid Notify(const IProperty&amp; oProperty) override;
+};
+
+            </code>
+          </pre>
+        </li>
+        <li>
+            Then implement it (<a href="src/properties_observer_filter.cpp">properties_observer_filter.cpp</a>):
+            <pre>
+                <code class="language-cpp">
+#include &quot;properties_observer_filter.h&quot;
+
+// The code behind the macro creates a plugin and the main entries to the plugin DLL or shared object.
+// The cPropertyFilter will be available through the plugins class factory.
+ADTF_PLUGIN(&quot;Properties Filter Plugin&quot;,
+            cPropertiesObserverFilter);
+
+cPropertiesObserverFilter::cPropertiesObserverFilter()
+{
+    // first we get a pointer to our properties.
+    object_ptr&lt;IProperties&gt; pProperties;
+    THROW_IF_FAILED(GetProperties(pProperties));
+
+    // we set some properties directly without the use of any Property Variables.
+    // mind that observing changes to Property Variables work just the same.
+    set_property&lt;tInt&gt;(*pProperties, &quot;observed_property_1&quot;, 10);
+    set_property&lt;tInt&gt;(*pProperties, &quot;observed_property_2&quot;, 20);
+
+    // now register ourselfs as an observer.
+    THROW_IF_FAILED(pProperties-&gt;RegisterPropertyObserver(&quot;observed_property_1&quot;, *this));
+    THROW_IF_FAILED(pProperties-&gt;RegisterPropertyObserver(&quot;observed_property_2&quot;, *this));
+}
+
+// This method will be called for each change to a Property.
+tVoid cPropertiesObserverFilter::Notify(const IProperty&amp; oProperty)
+{
+    // get the name of the property
+    cString strPropertyName;
+    oProperty.GetName(adtf_string_intf(strPropertyName));
+
+    // we know our properties are of type tInt, so we use a helper object to access the value:
+    property&lt;tInt&gt; oChangedProperty;
+    oChangedProperty.Set(oProperty);
+
+    LOG_INFO(&quot;Property &apos;%s&apos; has been changed to &apos;%d&apos;&quot;, strPropertyName.GetPtr(), oChangedProperty.GetValueT());
+}
+
+            </code>
+          </pre>
+        </li>
+      </ul>
+
+      </p>
+      <h3>Change Properties of ADTF Components while a Session is running</h3>
+      Currently the only possibility to change Properties within a running ADTF instance is via RPC. The <a href="tools_adtf_control.html">ADTF Control</a> implements commands for manipulating Properties.
+      So after starting an ADTF Session with two instances of the Filters above, we can execute to following commands and see how the Filters handle Property changes:
+      
+      <div class="alert alert-secondary" role="alert">
+			<pre>
+				<code>
+adtf> rl 5
+2019-05-02 14:57:21 [DUMP]: Will increase runlevel to "RL_Running" [runtime.cpp(714)]
+2019-05-02 14:57:21 [INFO]: Property 'observed_property_1' has been changed to '10' [properties_observer_filter.cpp(35)]
+2019-05-02 14:57:21 [INFO]: Property 'observed_property_2' has been changed to '20' [properties_observer_filter.cpp(35)]
+2019-05-02 14:57:21 [INFO]: Property 'observed_property_1' has been changed to '10' [properties_observer_filter.cpp(35)]
+2019-05-02 14:57:21 [INFO]: Property 'observed_property_2' has been changed to '20' [properties_observer_filter.cpp(35)]
+2019-05-02 14:57:21 [INFO]: product = 6.283000 [properties_filter.cpp(62)]
+2019-05-02 14:57:21 [INFO]: string_property value is 7 characters long. [properties_filter.cpp(66)]
+2019-05-02 14:57:21 [INFO]: My properties are set to:
+ float_property = 3.141500
+ group/property1 = 1
+ group/property2 = 2
+ string_property = device1
+ enum_property = 0
+ hidden_property = 3 [properties_filter.cpp(81)]
+adtf> sessionobjects
+default_streaming_graph
+default_streaming_graph/default_filter_graph
+default_streaming_graph/default_filter_graph/Properties Filter
+default_streaming_graph/default_filter_graph/Properties Observer Filter
+[session_manager.system.adtf]
+adtf> listprops "default_streaming_graph/default_filter_graph/Properties Observer Filter"
+observed_property_1=10
+observed_property_2=20
+adtf> setprop "default_streaming_graph/default_filter_graph/Properties Observer Filter" "observed_property_1" 30
+2019-05-02 14:57:45 [INFO]: Property 'observed_property_1' has been changed to '30' [properties_observer_filter.cpp(35)]
+adtf>
+      </code>
+			</pre>
+        </div>
+      
+      <h3>Where to go next?</h3>
+      <p>
+      Have a look at <a href="sdk_generate_plugin_description.html">Generate Plugin Description</a>
+      to learn how to describe components and generate this meta files.
+      </p>
+      
+        </div>
+    <!-- Optional JavaScript -->
+    <!-- jQuery first, then Popper.js, then Bootstrap JS, then Prism.js-->
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.11.0/umd/popper.min.js" integrity="sha384-b/U6ypiBEHpOf/4+1nzFpr53nxSS+GLCkfwBdFNTxtclqqenISfwAzpKaMNFNmj4" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/js/bootstrap.min.js" integrity="sha384-h0AbiXch4ZDo7tp9hKZ4TsHbi047NrKGLO3SEJAg45jXxnGIfYzk4Si90RDIqNm1" crossorigin="anonymous"></script>
+    <script src="prism/js/prism.js"></script>
+  
+
+  </body>
+
+</html>

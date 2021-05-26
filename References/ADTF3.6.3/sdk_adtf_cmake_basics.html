@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"/>
+    <meta name="description" content="This guide explains the basics about how to use CMake within ADTF projects">
+    <title>ADTF3 Guides - CMake</title>
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/css/bootstrap.min.css" integrity="sha384-/Y6pD6FV/Vv2HJnA6t+vslU6fwYXjCFtcEpHbNJ0lyAFsXTsjBbfaDjzALeQsN6M" crossorigin="anonymous"/>
+    <!-- Prism Syntax Highlighting CSS -->
+    <link rel="stylesheet" href="prism/css/prism.css"/>
+  </head>
+
+  <body>
+    <div class="container">
+
+      
+       <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+          <a class="navbar-brand" href="#">ADTF3 Guides</a>
+          <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+              <span class="navbar-toggler-icon"></span>
+          </button>
+          <div class="collapse navbar-collapse" id="navbarSupportedContent">
+
+          </div>
+      </nav>
+
+
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item">
+          <a href="index.html">Home</a>
+        </li>
+        <li class="breadcrumb-item active">ADTF related CMake</li>
+      </ol>
+
+      <h2>ADTF related CMake</h2>
+      <p>
+      This guide covers how CMake and ADTF play together:
+        <ul>
+          <li>What do I have to know about CMake</li>
+          <li>How do I configure my ADTF project with CMake</li>
+          <li>What are the most important ADTF-CMake macros</li>
+        </ul>
+      </p>
+
+      <h3>What is CMake?</h3>
+      <p>
+      CMake is a cross-platform, free and open-source software for managing the
+      build process of software using a compiler-independent method. It supports
+      directory hierarchies and applications that depend on multiple libraries.
+      It is used in conjunction with native build environments such as make,
+      Apple's Xcode, and Microsoft Visual Studio. It has minimal dependencies,
+      requiring only a C++ compiler on its own build system. <a href="https://de.wikipedia.org/wiki/CMake">(Wikipedia)</a>
+        <br/>
+        <code>CMakeLists.txt</code> files are used to declare which directories
+      should be included in the CMake process and what to do with the files
+      in the included directories.
+      </p>
+
+      <h3>CMake basics</h3>
+      <p>
+      Create a new file called <code>CMakeLists.txt</code> in the directory of the source files
+      you want to include in the Visual Studio solution. Now open the file in an editor.
+      </p>
+
+      <p>
+      First of all we can store information in variables using following command:
+        <pre>
+<code class="language-cmake">set (EXAMPLE_VARIABLE_NAME example_variable_value)</code>
+        </pre>
+      </p>
+
+      <p>
+      We can then access the value using:
+        <pre>
+<code class="language-cmake">${EXAMPLE_VARIABLE_NAME}</code>
+        </pre>
+      </p>
+
+      <p>
+      If we need empty files (e.g header, source files) we can create them using
+      this CMakeLists.txt. First we want to check whether the files we want to
+      create already exist. If the files do not exist yet, we create them. Note that
+      the path in the if condition has to be absolute. When creating files the path may be relative.
+
+      <pre>
+<code class="language-cmake">if(NOT EXISTS "PATH/TO/EXAMPLE/HEADER/FILE/example.h")
+  file(WRITE example.h)
+endif()
+if(NOT EXISTS "PATH/TO/EXAMPLE/SOURCE/FILE/example.cpp")
+  file(WRITE example.cpp})
+endif()</code>
+      </pre>
+    </p>
+
+    <div class="alert alert-warning" role="alert">
+      CMake only likes forward slashes, so make sure not to use back slashes!
+    </div>
+
+      <h3>Used default CMake macros</h3>
+      <ul>
+        <li>cmake_minimum_required - define the Version of the installed CMake executable</li>
+        <li>project - Gives the project a name</li>
+        <li>find_package - Any software packaged with CMake can be used in your project with this command</li>
+        <li>add_custom_command - Enables the execution of arbitrary commands</li>
+      </ul>
+      
+      <h3>Used ADTF CMake macros</h3>
+      <ul>
+        <li>adtf_add_filter - Turns your executable (sink, source or filter) into a <code>*.adtfplugin</code></li>
+        <li>adtf_install_filter - Copies all files required for execution into the installation folder</li>
+        <li>adtf_create_plugindescription - Generates the <code>*.plugindescription</code> file for the given executable (sink, source or filter)</li>
+      </ul>
+
+      <div class="alert alert-info" role="alert">
+        ADTF comes with some additional CMake macros to support the programmer with ADTF filter creation.
+        The macros are defined in the file <code>ADTFMacros.cmake</code> which you can find in the 
+        ADTF installation directory. For more information have a look at the <a href="../adtf_html/page_cmake__a_d_t_f_config.html">ADTF SDK</a>
+      </div>
+
+      <h3 id="VisualStudioSolution">Create a Visual Studio solution:</h3>
+      <ul>
+        <li>
+          Run your <code>cmake-gui.exe</code> to open the graphical user interface
+        </li>
+        <li>
+          Fill in where CMake can find your source code (and the created <code>CMakeLists.txt</code> file)
+        </li>
+        <li>
+          Fill in a <code>build</code> folder (this is where all the build stuff goes)
+        </li>
+        <li>
+          Press the <code>Configure</code> button
+        </li>
+      </ul>
+      
+
+      <div class="alert alert-warning" role="alert">
+        If you configure a project for the first time or delete the CMake cache, you have to specify:
+        <ul>
+          <li>
+            a generator for the project
+          </li>
+          <li>
+            a compiler for the project
+          </li>
+        </ul>
+        <figure class="figure">
+          <img width="600" src="screenshots/sdk/adtf_cmake_basics/cmake_configure_options.png" class="figure-img img-fluid rounded">
+            <figcaption class="figure-caption">CMake configure options</figcaption>
+          </figure>
+        </div>
+
+        <p>
+          <ul>
+            <li>
+              CMake is missing some information about your specific environment, the log messages tell you what CMake wants to know
+              <p>
+                <figure class="figure">
+                  <img width="500" src="screenshots/sdk/adtf_cmake_basics/initial_cmake_error.png" class="figure-img img-fluid rounded">
+                    <figcaption class="figure-caption">Missing CMake variables</figcaption>
+                  </figure>
+                </p>
+              </li>
+              <li>
+                Expand the entry <code>Ungrouped Entries</code> and you will see that the value for the variable <code>ADTF_DIR</code> is not set.
+                To fix this click into the "Value" Column and fill in the path to your ADTF directory.
+              </li>
+              <li>
+                Expand the entry <code>CMAKE</code> and search for the variable <code>CMAKE_INSTALL_PREFIX</code>.
+                By default this variable points to an absolute path with administration privileges which can be a problem.
+                Set the variable also to your ADTF directory e.g. <code>D:/ADTF/3.4.0</code>.
+                <div class="alert alert-warning" role="alert">
+                  Avoid using directories with admin permission (e.g. C:\Program Files). This can cause CMake to fail due to missing permissions.
+                </div>
+              </li>
+              <li>
+                Once again click the <code>Configure</code> button
+              </li>
+              <li>
+                Now you should get the "Configuring done" log message and you can click the <code>Generate</code> button
+              </li>
+              <li>
+                If everything is fine you get the "Generating done" log message. Click the <code>Open Project</code> button to open the generated project with Visual Studio
+              </li>
+            </ul>
+          </p>
+
+
+          <h3>Add your project to the ADTF examples</h3>
+          <p>
+            ADTF comes with several examples in place which are build with CMake. You can find these examples
+            in the folder <code>src/examples/src</code> of the ADTF installation directory.
+
+            If we use this directory to create a new project folder and add our new <code>CMakeLists.txt</code> file into it,
+            we can tell the existing ADTF example build process about our new project. This approach has the advantage that the
+            CE looks up plugins inside <code>src/examples/bin</code> by default.
+            So you don't have to tell the configuration editor where to look for your newly created filter, sinks and sources.
+            All we have to do is step one folder up in the file system hierarchy and add the <code>add_subdirectory</code>
+            macro to the existing <code>CMakeLists.txt</code> file.
+            CMake will automatically look for a <code>CMakeLists.txt</code> file inside the given folder and process
+            the instructions found in it:
+            <pre>
+<code class="language-cmake">add_subdirectory(PATH/TO/OUR/CMAKELISTS/FILE)</code>
+            </pre>
+            
+          </p>
+          
+          <p>Congratulations! Now you know are ready to dive into the ADTF SDK.</p>
+
+          <h3>Where to go next?</h3>
+          <p>
+            Have a look at <a href="sdk_filter_mechanics.html">My first filter</a>
+            to learn about the basic filter mechanics.
+          </p>
+          
+
+        </div>
+        <!-- Optional JavaScript -->
+        <!-- jQuery first, then Popper.js, then Bootstrap JS, then Prism.js-->
+        <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.11.0/umd/popper.min.js" integrity="sha384-b/U6ypiBEHpOf/4+1nzFpr53nxSS+GLCkfwBdFNTxtclqqenISfwAzpKaMNFNmj4" crossorigin="anonymous"></script>
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/js/bootstrap.min.js" integrity="sha384-h0AbiXch4ZDo7tp9hKZ4TsHbi047NrKGLO3SEJAg45jXxnGIfYzk4Si90RDIqNm1" crossorigin="anonymous"></script>
+        <script src="prism/js/prism.js"></script>
+      
+
+  </body>
+
+    </html>
+    

@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- Required meta tags -->
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <meta name="description" content="This guide explains how to turn samples into signals and display them in the signal view">
+  <title>ADTF3 Guides - Signal Provider</title>
+  <!-- Bootstrap CSS -->
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/css/bootstrap.min.css" integrity="sha384-/Y6pD6FV/Vv2HJnA6t+vslU6fwYXjCFtcEpHbNJ0lyAFsXTsjBbfaDjzALeQsN6M" crossorigin="anonymous">
+  <!-- Prism Syntax Highlighting CSS -->
+  <link rel="stylesheet" href="prism/css/prism.css">
+</head>
+<body>
+  <div class="container">
+    
+       <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+          <a class="navbar-brand" href="#">ADTF3 Guides</a>
+          <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+              <span class="navbar-toggler-icon"></span>
+          </button>
+          <div class="collapse navbar-collapse" id="navbarSupportedContent">
+
+          </div>
+      </nav>
+
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="index.html">Home</a></li>
+      <li class="breadcrumb-item active">Signal Provider Filter Tutorial</li>
+    </ol>
+    <h2>Signal Provider Filter Tutorial</h2>
+    <p>
+      This guide covers creating a simple ADTF filter that receives data samples
+      and uses them to create signals which are then displayed in a signal view using the display toolbox.
+      After reading this guide, you will know how to:
+      <ul>
+        <li>install the display toolbox</li>
+        <li>create and update signals</li>
+        <li>add a signal view to your ADTF project using the <a href="tools_adtf_configuration_editor.html">Configuration Editor</a></li>
+      </ul>
+    </p>
+    <h3>Where are we?</h3>
+    <p>
+      In <a href="tutorial_filter_processor.html">Data Generator Filter Tutorial</a>
+      we created a filter that can generate velocity and yaw rate data samples
+      and forward them to a data sink.
+      In <a href="tutorial_filter_generator.html">Data Processor Filter Tutorial</a>
+      we created another filter that takes velocity and yaw rate data samples,
+      uses them to calculate a kappa value and logs some values to the console.
+      In <a href="tutorial_adtf_project.html">ADTF Project Tutorial</a> 
+      we created a project with the Configuration Editor. The project contains a session
+      you can start with the <a href="tools_adtf_launcher.html#run_session">ADTF Launcher</a>.
+      The session references a graph file which contains a filter graph that makes use of our two new filters.
+      Now we want to display these values in a signal view. We therefore need to
+      implement a filter that:
+      <ul>
+        <li>
+          receives the kappa values
+        </li>
+        <li>
+          creates a signal
+        </li>
+        <li>
+          updates the signal when new data is available
+        </li>
+      </ul>
+    </p>
+
+    <div class="alert alert-warning" role="alert">
+      The <a href="https://support.digitalwerk.net/projects/download-center/wiki/ADTF_Display_Toolbox">
+      Display Toolbox</a> is necessary for this tutorial. 
+    </div>
+
+    <h3>Where to install the Display Toolbox?</h3>
+    <p>
+      Either install the display toolbox into ADTF's <code>addons</code> folder
+      at <code>ADTF_INSTALL_DIRECTORY/addons/</code> or install it in a custom
+      directory. The latter requires us to create a link from
+      the <code>addons</code> folder to the installation folder.
+    </p>
+
+    <h3>How to create the signal provider filter?</h3>
+    <p>
+      Just like before we create an empty ADTF filter using CMake. 
+      Here is an example CMakeLists.txt file for this purpose. It creates a filter
+      tutorial_filter_signal_provider.
+    </p>
+
+    <pre>
+      <code class="language-cmake">
+cmake_minimum_required (VERSION 3.10)
+project (SignalProvider)
+
+set (SIGNAL_PROVIDER_FILTER tutorial_signal_provider_filter)
+
+if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/tutorial_signal_provider_filter.h)
+  file(WRITE tutorial_signal_provider_filter.h)
+endif()
+if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/tutorial_signal_provider_filter.cpp)
+  file(WRITE tutorial_signal_provider_filter.cpp)
+endif()
+
+find_package(ADTF COMPONENTS filtersdk REQUIRED)
+find_package(ADTF COMPONENTS systemsdk REQUIRED)
+
+# Adds the tutorial_signal_provider_filter project to the Visual Studio solution, which when build
+# creates a shared object called tutorial_signal_provider_filter.adtfplugin
+adtf_add_filter(${SIGNAL_PROVIDER_FILTER} tutorial_signal_provider_filter.h tutorial_signal_provider_filter.cpp)
+
+# Adds the INSTALL project to the Visual Studio solution, which when build
+# copies our filter to the subdirectory given as the second argument into ${CMAKE_INSTALL_PREFIX}
+adtf_install_filter(${SIGNAL_PROVIDER_FILTER} src/examples/bin)
+
+# Generate a plugindescription for our filter
+adtf_create_plugindescription(TARGET ${SIGNAL_PROVIDER_FILTER} PLUGIN_SUBDIR "src/examples/bin")
+      </code>
+    </pre>
+    
+    <p>
+      For further information on how to use CMake have a look at <a href="sdk_adtf_cmake_basics.html#VisualStudioSolution">CMake Tutorial</a>.
+      Open the tutorial_filter_signal_provider header and source files in Visual Studio.
+    </p>
+
+    <h4>The header file of the filter</h4>
+    <p>
+      Our base header file looks similar to our previously created header files.
+      Additionally we need to inherit from <code>ISignalRegistry::ISignalProvider::IEnabledSignals</code>.
+      This helps us to enable/disable signals.
+      <pre>
+        <code class="language-cpp">
+/**
+ *
+ * ADTF Tutorial filter for data processing
+ *
+ */
+#pragma once
+
+// Include all necessary headers from the ADTF SDK
+#include &lt;adtffiltersdk/adtf_filtersdk.h&gt;
+#include &lt;plugins/signal_registry_intf.h&gt;
+
+#include &lt;mutex&gt;
+#include &lt;unordered_set&gt;
+
+// For simplicity use the necessary namespaces
+using namespace adtf::util;
+using namespace adtf::ucom;
+using namespace adtf::base;
+using namespace adtf::streaming;
+using namespace adtf::mediadescription;
+using namespace adtf::filter;
+using namespace adtf::services;
+
+// Now we declare a new class cTutorialFilterSignalProvider that
+// inherits from cFilter. This will be our Tutorial Filter.
+// We also implement IEnabledSignals to react to signal requests.
+class cTutorialFilterSignalProvider:
+        public cFilter,
+        public ISignalRegistry::ISignalProvider::IEnabledSignals
+{
+public:
+    // Inside the class declaration we use an ADTF macro to enable correct treatment
+    // of class identifier and class name by IClassInfo and the class factories.
+    ADTF_CLASS_ID_NAME(cTutorialFilterSignalProvider,
+                       &quot;tutorial_signal_provider.filter.adtf_guides.cid&quot;,
+                       &quot;Tutorial Signal Provider&quot;);
+
+    // Inform the tools that we require an service that provides the Signal Registry interface.
+    ADTF_CLASS_DEPENDENCIES(REQUIRE_INTERFACE(ISignalRegistry));
+
+public:
+    // We implement the constructor where we create our Pins.
+    cTutorialFilterSignalProvider();
+
+    // We override the Init method in order to access the Signal Registry Service
+    // And our instance name.
+    tResult Init(tInitStage eStage) override;
+
+    // We override the ProcessInput method, that we configure to be called each time a trigger occures via one input Pin.
+    tResult ProcessInput(ISampleReader* pReader,
+                         const iobject_ptr&lt;const ISample&gt;&amp; pSample) override;
+
+    // this is called when the first consumer requests a signal to be generated.
+    tResult EnableSignal(ISignalRegistry::tSignalID nSignalID) override;
+
+    // this is called when the last consumer cancels its requests for a signal to be generated.
+    tResult DisableSignal(ISignalRegistry::tSignalID nSignalID) override;
+
+private:
+    // Reader to read data samples from our input Pin.
+    ISampleReader* m_pKappaReader;
+
+    // pointer to our Signal Provider instance.
+    object_ptr&lt;ISignalRegistry::ISignalProvider&gt; m_pProvider;
+
+    // this guards conncurrent access to m_oEnabledSignals
+    std::mutex m_oEnabledSignalMutex;
+
+    // this store the ids of all requested signals
+    std::unordered_set&lt;ISignalRegistry::tSignalID&gt; m_oEnabledSignals;
+};
+
+          </code>
+        </pre>
+      </p>
+
+
+      <h4>The source file of the filter</h4>
+      <p>
+        Now we need to implement the <code>tutorial_filter_signal_provider.cpp</code>source file.        
+      </p>
+        <pre>
+          <code class="language-cpp">
+/*
+ *
+ * ADTF Tutorial Filter for data processing
+ *
+ */
+#include &quot;tutorial_signal_provider_filter.h&quot;
+
+// The code behind the macro creates a plugin and the main entries to the plugin DLL or shared object.
+// The cTutorialFilterDataProcessor class will be available through the plugins class factory.
+ADTF_PLUGIN(&quot;ADTF Tutorial Signal Provider Plugin&quot;, cTutorialFilterSignalProvider);
+
+cTutorialFilterSignalProvider::cTutorialFilterSignalProvider()
+{
+    // create our input
+    m_pKappaReader = CreateInputPin(&quot;kappa&quot;, stream_type_plain&lt;tFloat32&gt;());
+}
+
+tResult cTutorialFilterSignalProvider::Init(tInitStage eStage)
+{
+    // do not forget to call the cFilter Implementation of this method.
+    RETURN_IF_FAILED(cFilter::Init(eStage));
+
+    // in stage normal we can perform long running initializations
+    // and access property values.
+    if (eStage == StageNormal)
+    {
+        // get the Signal Registry interface from the runtime
+        object_ptr&lt;ISignalRegistry&gt; pSignalRegistry;
+        RETURN_IF_FAILED_DESC(_runtime-&gt;GetObject(pSignalRegistry),
+                              &quot;Unable to aquire the Signal Registry Interface&quot;);
+
+        // we create a provider with our name
+        RETURN_IF_FAILED(pSignalRegistry-&gt;CreateProvider(get_named_graph_object_full_name(*this),
+                                                         m_pProvider));
+
+        // and add a single signal
+        RETURN_IF_FAILED(m_pProvider-&gt;AddSignal({0,
+                                                 &quot;kappa&quot;,
+                                                 &quot;&quot;,
+                                                 &quot;kappa values&quot;,
+                                                 0.0, 5.0},
+                                                 this));
+    }
+
+    RETURN_NOERROR;
+}
+
+// This function will be executed each time a trigger occurs via the &quot;kappa&quot; input Pin
+tResult cTutorialFilterSignalProvider::ProcessInput(ISampleReader* /*pReader*/,
+                                                    const iobject_ptr&lt;const ISample&gt;&amp; pSample)
+{
+    std::lock_guard&lt;std::mutex&gt; oGuard(m_oEnabledSignalMutex);
+    if (m_oEnabledSignals.find(0) == m_oEnabledSignals.end())
+    {
+        // in case nobody requested a signal from us, do nothing.
+        RETURN_NOERROR;
+    }
+
+    // Once again use sample_data to access the data.
+    sample_data&lt;tFloat32&gt; fKappa(pSample);
+
+    // And update our signal value.
+    RETURN_IF_FAILED(m_pProvider-&gt;UpdateSignal(0, {fKappa.GetTimeNs(), fKappa}));
+
+    RETURN_NOERROR;
+}
+
+tResult cTutorialFilterSignalProvider::EnableSignal(ISignalRegistry::tSignalID nSignalID)
+{
+    // the registry will never request a signal that we do not provide
+    // we check it anyway.
+    if (nSignalID != 0)
+    {
+        RETURN_ERROR_DESC(ERR_INVALID_ARG, &quot;There is no signal with ID %d&quot;, nSignalID);
+    }
+
+    // insert it into our active set
+    std::lock_guard&lt;std::mutex&gt; oGuard(m_oEnabledSignalMutex);
+    m_oEnabledSignals.insert(nSignalID);
+    RETURN_NOERROR;
+}
+
+tResult cTutorialFilterSignalProvider::DisableSignal(ISignalRegistry::tSignalID nSignalID)
+{
+    // remove it into from our active set
+    std::lock_guard&lt;std::mutex&gt; oGuard(m_oEnabledSignalMutex);
+    m_oEnabledSignals.erase(nSignalID);
+    RETURN_NOERROR;
+}
+
+          </code>
+        </pre>
+      </p>
+
+      <p>
+        Finally build and install the Project with Visual Studio to get the binaries.
+      </p>
+
+      <h3>Project integration</h3>
+      <p>
+        We use our previously created <a href="tutorial_adtf_project.html">ADTF Project</a>
+        and extend the functionality with a signal configuration. Therefore we need to select
+        the <code>Tools</code> menu and open the <code>Options</code> dialog and extend
+        the entry <code>Plugin directories</code> by adding the directories where the filters
+        (and their describing *.plugindescription files) are located. If you need help read
+        the <a href="tools_adtf_configuration_editor.html#options">Options section</a>.
+      </p>
+
+      <p>
+        The next step is to add missing <code>Services</code>.
+        Have a look at the <a href="tools_adtf_configuration_editor.html#system_editor">System Editor</a>
+        and add the following Services (their starting run level must be set to System):
+      </p>
+
+        <ul>
+          <li>
+            signal_registry.service.adtf
+          </li>
+          <li>
+            qt_xsystem.ui_service.adtf
+          </li>
+          <li>
+            signal_scope_view.ui_service.disptb
+          </li>
+          <li>
+            signal_table_view.ui_service.disptb
+          </li>
+          <li>
+            signal_tree_view.ui_service.disptb
+          </li>
+        </ul>
+
+        <p>
+          Now we can add a <code>Tutorial Filter Signal Provider</code> to our
+          filter graph. We want it to receive modified data samples from our
+          <code>Tutorial Filter Data Processor</code> so we add a <code>Sample Stream</code>
+          and use it to connect both filters.
+          <figure class="figure">
+            <img src="screenshots/tutorials/filter_signal/ce_signal_integration_1.png" class="figure-img img-fluid rounded">
+            <figcaption class="figure-caption">Connect data processor and signal provider</figcaption>
+          </figure><br>          
+          We finished integrating the signal provider in our ADTF project.
+          <figure class="figure">
+            <img src="screenshots/tutorials/filter_signal/ce_signal_filter_graph.png" class="figure-img img-fluid rounded">
+            <figcaption class="figure-caption">Complete filter graph</figcaption>
+          </figure>
+        </p>
+
+        <p>
+          Now we want to run our modified session and have a look at our signal.
+        </p>
+
+        <h3>Display the signal</h3>
+        <p>
+          You can start the session with the <a href="tools_adtf_launcher.html#run_session">ADTF Launcher</a>.
+        </p>
+
+        <div class="alert alert-secondary" role="alert">
+          <pre><code>adtf_launcher.exe --session "PATH\TO\YOUR\PROJECT\adtfsessions\default_session.adtfsession" --run --console</code></pre>
+        </div>
+        <p>
+          Because we added the <code>qt_xsystem.ui_service.adtf</code> service, ADTF will initialize a kind of
+          X-System which is capable of arranging multiple sub windows.
+
+          The previously added<code>signal_tree_view.ui_service.disptb</code> service
+          adds a expandable tree view of available signals that can be dragged into the other displays.
+          
+          The<code>signal_scope_view.ui_service.disptb</code> service provides a sub window where
+          signals can be dropped. The values of the signal are displayed in a time series chart.
+          To see the signals in the chart they must be activated by a checkbox next to text label of the signal.
+          
+          The <code>signal_table_view.ui_service.disptb</code> service provides also a sub window where
+          signals can be dropped. The values of the signal are displayed in a table view.
+        </p>
+
+        <div class="alert alert-warning" role="alert">
+          If the signal view window remains empty, try to enable the <code>signal_tree_view, signal_scope_view and signal_scope_view</code> by right clicking in the window.
+        </div>
+
+        <p>
+          Now we need to add our <code>kappa</code> signal to the <code>signal_scope_view</code>.
+          We can just drag'n drop it from the <code>signal_tree_view</code> into the<code>signal_scope_view</code>.
+        </p>
+
+        <figure class="figure">
+          <img src="screenshots/tutorials/filter_signal/session_signals_config.png" class="figure-img img-fluid rounded">
+          <figcaption class="figure-caption">Configure signals to display</figcaption>
+        </figure>
+
+        <p>
+          <div class="alert alert-info" role="alert">
+            If the black graph in the <code>signal_scope_view</code> remains empty
+            check whether your signal is activated.
+          </div>
+          <figure class="figure">
+            <img src="screenshots/tutorials/filter_signal/active_signal_chckbx.png" class="figure-img img-fluid rounded">
+            <figcaption class="figure-caption">Activated signal checkbox</figcaption>
+          </figure>
+        </p>
+
+        <p>
+          If you added the signal "kappa" to the <code>signal_scope_view</code> and the <code>signal_table_view</code>
+          you should see a display layout that looks like this:
+        </p>
+
+        <figure class="figure">
+          <img src="screenshots/tutorials/filter_signal/signal_display_run.png" class="figure-img img-fluid rounded">
+          <figcaption class="figure-caption">Displayed signal in the signal view</figcaption>
+        </figure>
+        
+        <div class="alert alert-info" role="alert">
+          If we drop a signal in the <code>signal_table_view</code> we can see it's current value and unit.
+        </div>
+
+        <figure class="figure">
+          <img src="screenshots/tutorials/filter_signal/signal_table_view.png" class="figure-img img-fluid rounded">
+          <figcaption class="figure-caption">Signal value in the signal_table_view</figcaption>
+        </figure>
+
+        <h3>Convert data samples into signals automatically</h3>
+        <p>
+          Because it would be very tedious to write a signal provider for every data sample there is
+          a convenient short cut. ADTF offers a service called <code>media_description</code> which is
+          part of the ADTF default delivery. This service is capable to convert data samples into signals.
+        </p>
+
+        <div class="alert alert-warning" role="alert">
+          Because of the conversion of every single data sample this may influence performance.
+        </div>
+
+        <p>
+          To test this automated conversion we just need to go to the <a href="tools_adtf_configuration_editor.html#system_editor">
+          System Editor</a> of the Configuration Editor and add the <code>media_description</code>service. Because
+          this feature of the service is turned off by default we have to turn it on. To do so click on <code>Properties</code>
+          button in the row of the <code>media_description</code> service and set the attribute <code>provide_signals</code>
+          to <code>true</code> after that hit <kbd><kbd>ctrl</kbd> + <kbd>S</kbd></kbd> to save the project.
+        </p>
+
+        <figure class="figure">
+          <img src="screenshots/tutorials/filter_signal/system_editor_service_properties.png" class="figure-img img-fluid rounded">
+          <figcaption class="figure-caption">System editor service properties</figcaption>
+        </figure>
+
+        <figure class="figure">
+          <img width="50%" src="screenshots/tutorials/filter_signal/service_edit_properties.png" class="figure-img img-fluid rounded">
+          <figcaption class="figure-caption">Edit service properties</figcaption>
+        </figure>
+
+        <p>
+          After stopping the ADTF Launcher and doing a restart we can see three new
+          signals in addition to our manually created signal <code>kappa</code>.
+          The service checks all data connection of the filter graph and asks for the stream type.
+          If the stream type provides a media description the service tries to provide its data elements
+          as signal values.
+          In our case the stream_type_plain&lt;tFloat32&gt; defines a media description for us.
+        </p>
+        <br>
+        <p>The signal names are the element names in the according media description.</p>
+
+        <figure class="figure">
+          <img src="screenshots/tutorials/filter_signal/signal_tree_view_default_signals.png" class="figure-img img-fluid rounded">
+          <figcaption class="figure-caption">Available signals in the signal_tree_view</figcaption>
+        </figure>
+
+        <p>
+          If we drag'n drop the signals into the <code>signal_table_view</code> and run
+          the session we can see the velocity, yaw rate and kappa values.
+        </p>
+
+        <figure class="figure">
+          <img src="screenshots/tutorials/filter_signal/signal_table_view_default_signals.png" class="figure-img img-fluid rounded">
+          <figcaption class="figure-caption">Dispay signal values in signal_table_view</figcaption>
+        </figure>
+      
+        <h3>Where to go next?</h3>
+        <p>
+          Have a look at the <a href="tutorial_filter_javascript.html">Javascript Filter</a> for rapid prototyping.
+        </p>
+
+      </div>
+  <!-- Optional JavaScript -->
+  <!-- jQuery first, then Popper.js, then Bootstrap JS, then Prism.js-->
+  <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.11.0/umd/popper.min.js" integrity="sha384-b/U6ypiBEHpOf/4+1nzFpr53nxSS+GLCkfwBdFNTxtclqqenISfwAzpKaMNFNmj4" crossorigin="anonymous"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/js/bootstrap.min.js" integrity="sha384-h0AbiXch4ZDo7tp9hKZ4TsHbi047NrKGLO3SEJAg45jXxnGIfYzk4Si90RDIqNm1" crossorigin="anonymous"></script>
+  <script src="prism/js/prism.js"></script>
+
+  </body>
+</html>

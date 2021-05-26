@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- Required meta tags -->
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+	<meta name="description" content="This guide explains how to setup a project with the ADTF Configuration Editor which makes use of self written components">
+	<title>ADTF3 Guides - ADTF Project Tutorial</title>
+  <!-- Bootstrap CSS -->
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/css/bootstrap.min.css" integrity="sha384-/Y6pD6FV/Vv2HJnA6t+vslU6fwYXjCFtcEpHbNJ0lyAFsXTsjBbfaDjzALeQsN6M" crossorigin="anonymous">
+</head>
+<body>
+  <div class="container">
+    
+       <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+          <a class="navbar-brand" href="#">ADTF3 Guides</a>
+          <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+              <span class="navbar-toggler-icon"></span>
+          </button>
+          <div class="collapse navbar-collapse" id="navbarSupportedContent">
+
+          </div>
+      </nav>
+
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="index.html">Home</a></li>
+      <li class="breadcrumb-item active">ADTF Project Tutorial</li>
+    </ol>
+    <h2>ADTF Project Tutorial</h2>
+    <p>
+      This guide covers creating a new ADTF Project using custom filters. After reading this guide you will know:
+      <ul>
+        <li>the structure of an ADTF project</li>
+        <li>how to create an ADTF Project using the <a href="tools_adtf_configuration_editor.html">Configuration Editor</a></li>
+        <li>how to include custom filters in your project</li>
+        <li>how to create filter graphs</li>
+        <li>how to create session files</li>
+        <li>how to create system files</li>
+      </ul>
+    </p>
+
+    <h3>Where are we?</h3>
+    <p>
+      In <a href="tutorial_filter_processor.html">Data Generator Filter</a>
+      we created a filter that can generate velocity and yaw rate data samples
+      and forward them to a data sink or another filter.
+      In <a href="tutorial_filter_generator.html">Data Processor Filter</a>
+      we created another filter that takes velocity and yaw rate data samples,
+      uses them to calculate a kappa value and logs some values to the console.
+      Now we want to combine those two filters. We want our <code>Data Generator Filter</code>
+      to generate data samples and send them to our <code>Data Processor Filter</code>
+      that processes them. To accomplish this we create an <code>ADTF Project</code>.
+    </p>
+
+    <h3>Add our new filters to the Configuration Editor</h3>
+    <p>
+      First of all we need to start the <a href="tools_adtf_configuration_editor.html#start">Configuration Editor</a>.
+      Before we can use our custom filters we need to tell the Configuration Editor where to find them.
+      Therefore we select the <code>Tools</code> menu and open the <code>Options</code> dialog and extend the entry <code>Plugin directories</code>
+      by adding the directories where the filters (and their describing <code>*.plugindescription</code> files) are located, e.g.:
+      <ul>
+        <li>
+          {ADTF_DIR}\src\examples\bin\debug
+        </li>
+        <li>
+          {ADTF_DIR}\src\examples\bin\debug
+        </li>
+      </ul>
+      If you need help read the <a href="tools_adtf_configuration_editor.html#options">Options section</a>.
+      The new filters should show up in the <code>Components</code> tab. 
+      Note that the <code>Plugins</code>and<code>Plugins (Debug)</code>categories of the<code>System Editor</code>automatically reflect the new dependencies.
+      Now the filters located at the added plugin directories should be visible in the <code>Components</code> tab of the Configuration Editor. You can also 
+      use the search field for a better overview:
+      </p>
+
+      <figure class="figure">
+        <img width="50%" src="screenshots/tutorials/adtf_project/configuration_editor_components.png" class="figure-img img-fluid rounded">
+        <figcaption class="figure-caption">Configuration Editor - Components tab</figcaption>
+      </figure>
+
+    <h3>Create an ADTF Project</h3>
+    <p>
+      We choose <code>File->New Project</code> and enter a name and a location
+      for our project in the upcoming window.
+    </p>
+
+      <figure class="figure">
+        <img width="50%" src="screenshots/tutorials/adtf_project/configuration_editor_new_project_window.png" class="figure-img img-fluid rounded">
+        <figcaption class="figure-caption">Window - New Project</figcaption>
+      </figure><br>
+ 
+
+    <p>
+      Drag and drop our new filters from the components tab into the filter graph.
+    </p>
+
+    <figure class="figure">
+      <img width="100%" src="screenshots/tutorials/adtf_project/configuration_editor_edit_graph.png" class="figure-img img-fluid rounded">
+      <figcaption class="figure-caption">Modifying a graph</figcaption>
+    </figure>
+
+    <p>
+      We want to generate velocity and yaw rate data samples. Therefore we need
+      a <code>Tutorial Filter Data Generator</code> component.
+    </p>
+
+    <figure class="figure">
+      <img width="50%" src="screenshots/tutorials/adtf_project/graph_creation_1.png" class="figure-img img-fluid rounded">
+      <figcaption class="figure-caption">Graph with data generator</figcaption>
+    </figure>
+
+    <p>
+      To trigger our <code>Data Generator</code> we need a <code>Timer Runner</code>
+      connected to them. First Drag and Drop a <code>Timer Runner</code> from the
+      Components tab into the graph window. And then connect the bottom of the
+      Object with the <code>Data Generator</code>.
+    </p>
+
+    <figure class="figure">
+      <img width="75%" src="screenshots/tutorials/adtf_project/graph_creation_2.png" class="figure-img img-fluid rounded">
+      <figcaption class="figure-caption">Graph with timer runner</figcaption>
+    </figure>
+
+    <p>
+      Now we add a <code>Data Processor</code> and connect it to our <code>Data Generator</code>
+      using two <code>Sample Streams</code>.
+    </p>
+
+    <figure class="figure">
+      <img src="screenshots/tutorials/adtf_project/graph_creation_3.png" class="figure-img img-fluid rounded">
+      <figcaption class="figure-caption">Graph with data processor</figcaption>
+    </figure>        
+    
+    <p>
+      We finished creating our first ADTF Project. We can run the <code>default_session</code> in the <code>Project View</code> tab.
+      To do so right click it and choose "Launch via ADTF Console". Run the session by typing "rl running" into the cmd. If everything
+      is setup correctly, the produced velocity and yaw values should be logged to the console.
+    </p>
+
+	  <figure class="figure">
+      <img src="screenshots/tutorials/adtf_project/session_console_output.png" class="figure-img img-fluid rounded">
+      <figcaption class="figure-caption">Console output</figcaption>
+    </figure>
+
+    <p>
+      Now we can start debugging our filters using Visual Studio and the Configuration Editor.
+    </p>
+
+    <h3>Where to go next?</h3>
+    <p>
+      Have a look at the <a href="tutorial_filter_debugging.html">Filter Debugging Tutorial</a>
+      to learn how to debug your custom filters in Visual Studio.
+    </p>
+
+  </div>
+  <!-- Optional JavaScript -->
+  <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+  <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.11.0/umd/popper.min.js" integrity="sha384-b/U6ypiBEHpOf/4+1nzFpr53nxSS+GLCkfwBdFNTxtclqqenISfwAzpKaMNFNmj4" crossorigin="anonymous"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/js/bootstrap.min.js" integrity="sha384-h0AbiXch4ZDo7tp9hKZ4TsHbi047NrKGLO3SEJAg45jXxnGIfYzk4Si90RDIqNm1" crossorigin="anonymous"></script>
+</body>
+</html>

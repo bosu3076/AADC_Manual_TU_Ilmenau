@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+	<meta name="description" content="This guide explains how you can extend the functionality of the Configuration Editor ">
+	<title>ADTF3 Guides - ADTF CE Module</title>
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/css/bootstrap.min.css" integrity="sha384-/Y6pD6FV/Vv2HJnA6t+vslU6fwYXjCFtcEpHbNJ0lyAFsXTsjBbfaDjzALeQsN6M" crossorigin="anonymous">
+    <!-- Prism Syntax Highlighting CSS -->
+	<link rel="stylesheet" href="prism/css/prism.css">
+  </head>
+  <body>
+	<div class="container">
+		
+       <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+          <a class="navbar-brand" href="#">ADTF3 Guides</a>
+          <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+              <span class="navbar-toggler-icon"></span>
+          </button>
+          <div class="collapse navbar-collapse" id="navbarSupportedContent">
+              <div class="d-flex justify-content-end">
+                  <div class="w-75 pt-2">
+                  </div>
+              </div>
+          </div>
+      </nav>
+
+		<ol class="breadcrumb">
+			<li class="breadcrumb-item"><a href="index.html">Home</a></li>
+			<li class="breadcrumb-item active">ADTF CE Module</li>
+        </ol>
+        
+		<h2>ADTF CE Module</h2>
+        <p>
+            This guide explains how to enhance the functionality of the <a href="tools_adtf_configuration_editor.html">
+            ADTF Configuration Editor</a>.
+            If you need some custom dialogs to support special use cases you can wirte a GUI plugin (<code>*.adtfceplugin</code>)
+            which we call an ADTF CE Module. These modules consist of two parts. A C++ library for the business logic and a
+            QML script for the graphical user interface.<br>
+
+            Let's take properties of the type "file name" for example, as you can see when you select the ADTFDAT File Player
+            in the <a href="tools_adtf_configuration_editor.html#property_editor">Property Editor</a> of the Configuration Editor.
+
+            In previous versions of ADTF3 the user had to enter the file name into a plain text field.
+            By writing an ADTF CE Module the handling of file name properties was improved. Now it is possible
+            to open a file chooser and convert absolute paths to relative paths. To make the selected path work on
+            different computers you can substitute things away like the drive name for example (the M Button in the screenshot).
+            
+        </p>
+
+        <figure class="figure">
+			<img width="60%" src="screenshots/tutorials/ce_module/set_filename.png" class="figure-img img-fluid rounded">
+			<figcaption class="figure-caption">New editor for Filename and Filepath</figcaption>
+		</figure>
+        
+        <figure class="figure">
+			<img width="60%" src="screenshots/tutorials/ce_module/set_filenamelist.png" class="figure-img img-fluid rounded">
+			<figcaption class="figure-caption">New editor for FilenameList</figcaption>
+		</figure>
+        
+        <h3>The C++ Part</h3>
+        <p>
+            First we need to define a C++ Class that implements the functionality we want to provide 
+            inside the Configuration Editor. In this case we get the resulting class <code>cFileListModel</code>.
+            In order to use the C++ class within our QML context we need to use some of Qt's 
+            predefined macros.
+            To use functions from our C++ class within QML we have to prefix them with <code>Q_INVOKABLE</code>:
+        </p>
+        <pre>
+        <code class="language-javascript">
+Q_INVOKABLE void removeFile(const QString & strFilepath);
+        </code>
+        </pre>
+        <p>
+        Properties can be defined like this
+        </p>
+        <pre>
+        <code class="language-javascript">
+Q_PROPERTY(QObject* filenameHelper READ getFilenameHelper WRITE setFilenameHelper)
+
+Q_INVOKABLE QObject* getFilenameHelper();
+Q_INVOKABLE void setFilenameHelper(QObject* pFilenameHelper);
+        </code>
+        </pre>
+        <p>
+            It is possible to use any class of the ADTF SDK to extend the Configuration Editor with 
+            custom behaviour.
+
+            But the code has to play nicely with the Qt meta type system. Have a look
+            at the Qt coding guide lines
+            <a href="http://doc.qt.io/qt-5/qtqml-cppintegration-exposecppattributes.html">here</a>.
+        </p>
+        <p>
+            A complete ADTF CE Module requires a C++ class that is derived from the 
+            Qt-Class <code>QQmlExtensionPlugin</code>. Inside this class we have
+            to override the <code>registerTypes()</code> method in order to announce a new 
+            QML type which represents the C++ class that contains the business logic within the QML-Engine.
+        </p>
+        <pre>
+        <code class="language-javascript">
+void cCeDemoPlugin::registerTypes(const char* /*uri*/)
+{
+    qmlRegisterType<cFileListModel>("FileListExample", 1, 0, "FileListModel");
+}
+        </code>
+        </pre>
+        <p>
+            This is all we have to do in C++. The complete code can be seen <a href="../adtf_html/page_demo_property_editor.html">here</a>.
+            Or look into the examples folder of your ADTF installation (<code>src\examples\src\adtf\ce_modules\demo_property_editor</code>)
+            and have a look at
+            cFileListModel:
+            <ul>
+                <li><code>ce_module_example.h</code></li>
+                <li><code>ce_module_example.cpp</code></li>
+            </ul>
+            and cCeDemoPlugin:
+            <ul>
+                <li><code>ce_module_example_plugin.h</code></li>
+                <li><code>ce_module_example_plugin.cpp</code></li>
+            </ul>
+        </p>
+        
+        <h3>The QML part</h3>
+        <p>
+            If we want to use a custom GUI-Extension within the Configuration Editor we need to implement it in a 
+            QML package. During start up the Configuration Editor looks for a specific file inside the QML package,
+            the <code>Main.qml</code>.
+            Within this file we register a custom property editor for a certain property type like this:
+        </p>
+        <pre>
+        <code class="language-javascript">
+import PropertyView 1.0
+Item
+{
+    Component.onCompleted:
+    {
+        PropertyViewConfig.addEditor("cFilenameList", "qrc:/module/SimpleExample/FilenamesListEditor.qml");
+    }
+}
+        </code>
+        </pre>
+        <p>
+            The <code>PropertyViewConfig.addEditor</code> function is a predefined function to 
+            register a new property editor.
+        </p>
+        <p>
+            We can use the C++ class <code>cFileListModel</code> which we created and registered 
+            before inside the QML-Code like this:
+        </p>
+        <pre>
+        <code class="language-javascript">
+FileListModel
+{
+    id: filelist
+    filenameHelper: filenameHelper
+}
+
+TreeView
+{
+    id: table
+
+    Layout.fillHeight: true
+    Layout.fillWidth: true
+
+    model: filelist;
+
+    .
+    .
+    .
+}
+        </code>
+        </pre>
+        
+        <h3>The CMake part</h3>
+        <p>
+            To build the <code>*.adtfceplugin</code> we need to create a <code>CMakeLists.txt</code>
+            and open the resulting solution with Visual Studio.
+            In order to use Qt we first need to locate the required packages.
+            To do so we add the following lines to our script:
+        </p>
+        <pre>
+        <code class="language-cmake">
+find_package(Qt5Widgets REQUIRED)
+find_package(Qt5Quick REQUIRED)
+        </code>
+        </pre>
+        <p>
+            Now we need to enable Qt's mocing mechanism by adding this snippet:
+        </p>
+        <pre>
+        <code class="language-cmake">
+set(CMAKE_INCLUDE_CURRENT_DIR ON)
+set(CMAKE_AUTOMOC ON)
+        </code>
+        </pre>
+        And define a resource:
+        <pre>
+        <code class="language-cmake">
+QT5_ADD_RESOURCES(RSCS qml/module.qrc)
+        </code>
+        </pre>
+        </p>
+        <p>
+            Finally we use a provided cmake function <code>adtf_add_ce_plugin</code> to link our 
+            assembly with the QML source files and install the plugin:
+        </p>
+        <pre>
+        <code class="language-cmake">
+# SRC_FILES must be set before to all your header and cpp files, for eyample:
+# set(SRC_FILES my_header.h my_source.cpp)
+adtf_add_ce_plugin(${TARGETNAME} SHARED 
+    ${SRC_FILES}
+    ${RSCS})  
+
+adtf_install_filter(${TARGETNAME} ${DST})
+        </code>
+        </pre>
+        <p>
+            And, not essential for CE Modules itself but for our use case to resolve macros:
+        </p>
+<pre>
+<code class="language-cmake">
+# ...
+
+if (NOT TARGET ce_utils)
+    find_package(ADTF COMPONENTS ce_utils)
+endif()
+
+# ...
+            
+target_link_libraries(${TARGETNAME} PRIVATE ce_utils)
+
+# ...
+</code>
+</pre>
+
+    <p>
+        The complete example can be found <a href="../adtf_html/page_demo_property_editor.html">here</a>
+    </p>
+
+    </div>
+    <!-- Optional JavaScript -->
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.11.0/umd/popper.min.js" integrity="sha384-b/U6ypiBEHpOf/4+1nzFpr53nxSS+GLCkfwBdFNTxtclqqenISfwAzpKaMNFNmj4" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/js/bootstrap.min.js" integrity="sha384-h0AbiXch4ZDo7tp9hKZ4TsHbi047NrKGLO3SEJAg45jXxnGIfYzk4Si90RDIqNm1" crossorigin="anonymous"></script>
+    <script src="prism/js/prism.js"></script>
+  </body>
+</html>

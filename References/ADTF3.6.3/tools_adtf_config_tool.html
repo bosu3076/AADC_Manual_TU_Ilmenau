@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="This guide explains the ADTF Config Tool which you can use for simple automation tasks">
+    <title>ADTF3 Guides - ADTF Config Tool</title>
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/css/bootstrap.min.css" integrity="sha384-/Y6pD6FV/Vv2HJnA6t+vslU6fwYXjCFtcEpHbNJ0lyAFsXTsjBbfaDjzALeQsN6M" crossorigin="anonymous">
+      <link rel="stylesheet" href="font-awesome/css/font-awesome.min.css">
+  </head>
+  <body>
+    <div class="container">
+        
+       <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+          <a class="navbar-brand" href="#">ADTF3 Guides</a>
+          <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+              <span class="navbar-toggler-icon"></span>
+          </button>
+          <div class="collapse navbar-collapse" id="navbarSupportedContent">
+
+          </div>
+      </nav>
+
+
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="index.html">Home</a></li>
+            <li class="breadcrumb-item active">ADTF Config Tool</li>
+        </ol>
+
+        <h2><img src="logos/adtf_config_tool.png" width="48" height="48"> ADTF Config Tool</h2>
+        <p>
+            Since ADTF version <span class="badge badge-secondary">3.3.0</span> there is a config tool available
+            (<code>bin\adtf_config_tool.exe</code>). The ADTF Config Tool allows the user
+            to manipulate ADTF Graph and ADTF Properties files. It can be used in scripting environments to
+            perform basic tasks like activating/deactivating graph items and/or change property values. You can compare it 
+            to light console version of ADTF Configuration Editor with the focus for scripting.
+            Please take a look at the tools <code>-help</code> output for documentation of the available commands:
+        </p>
+        <div class="alert alert-secondary" >
+            <pre>
+                <code>
+usage:
+  adtf_config_tool.exe  options
+
+where options are:
+  -?, -h, --help                                    display usage information
+  --dry-run                                         Do not save changes to
+                                                    the files.
+  --session &lt;adtfsessionfile&gt;                       Loads the given session
+                                                    file and its referenced
+                                                    system, graph and
+                                                    properties files.
+  --graph &lt;adtfgraphfile&gt;                           Loads the given graph
+                                                    file.
+  --properties &lt;adtfgraphpropertiesfile&gt;            Loads the given
+                                                    properties file.
+  --system &lt;adtfsystemfile&gt;                         Loads the given system
+                                                    file.
+  --system-properties &lt;adtfsystempropertiesfile&gt;    Loads the given system
+                                                    properties file.
+  --cesettings &lt;adtfcesettingsfile&gt;                 Loads the given
+                                                    cesettings file.
+  --validate-plugindescription                      Deactivate the
+                                                    plugindescription
+                                                    validation
+  -e                                                All arguments following
+                                                    will be interpreted as a
+                                                    command.
+commands:
+objects  options
+  List all available graph objects.
+  options:
+  --plugin-description    print plugin descriptions
+
+systemobjects  options
+  List all available system objects.
+  options:
+  --plugin-description    print plugin descriptions
+
+plugindescription &lt;graphobject&gt;
+  List all available plugindescription information of graph object.
+
+isactive &lt;graphobject&gt;
+  Prints whether the the given graph object is activated or deactivated.
+
+activate &lt;graphobject&gt;
+  Activate the given graph object.
+
+deactivate &lt;graphobject&gt;
+  Deactivate the given graph object.
+
+listprops &lt;graphobject&gt;
+  List the properties of the given graph object.
+
+listpropvalues &lt;graphobject&gt;
+  List the properties and their values of the given graph object.
+
+setprop &lt;graphobject&gt; &lt;propertyname&gt; &lt;value&gt;
+  Set the given property value of the given graph object.
+
+getprop &lt;graphobject&gt; &lt;propertyname&gt;
+  Get a property value of the given graph object.
+
+addcomponent &lt;graph&gt; &lt;componenttype&gt; &lt;classid&gt; &lt;label&gt;
+  Add a component to given graph.
+
+connect &lt;component&gt; &lt;component&gt; options
+  Connect two given components in the same graph via given pins.
+  options:
+  --output-pin &lt;pin&gt;    Source data pin name.
+  --input-pin &lt;pin&gt;     Destination data pin name.
+  --runner-pin &lt;pin&gt;    Destination runner pin.    
+                </code>
+            </pre>
+        </div>
+
+        <h3>Available objects of an ADTF Session</h3>
+        <p>
+            To reference any component inside the session you need to know its unique path.
+            To list the path of all components inside a graph file issue the following command (either
+            supply the name of a session file or the name of graph file):
+        </p>
+        <div class="alert alert-secondary" role="alert">
+            <pre><code>adtf_config_tool.exe &lt;sessionfile/graphfile&gt; objects</code></pre>
+        </div>
+        <p>If you have selected one of the components you can use</p>
+        <div class="alert alert-secondary" >
+            <pre><code>adtf_config_tool.exe &lt;sessionfile/graphfile&gt; listprops &lt;component&gt;</code></pre>
+        </div>
+        <p>to get a list of all available properties which can be set via setprop and getprop.</p>
+
+        <h3>Example add and connect a filter</h3>
+        <p>
+            Since version <span class="badge badge-secondary">3.4.0</span> you can use the method <code>addcomponent</code> to add
+            a new component into an existing graph in an existing .adtfgraph file
+        </p>
+        <div class="alert alert-secondary">
+        <pre><code>adtf_config_tool.exe &lt;sessionfile/graphfile&gt; addcomponent &lt;GRAPH&gt; &lt;COMPONENT_TYPE&gt; &lt;CLASS_ID&gt; &lt;LABEL&gt;</code></pre>
+        </div>
+        <p>
+        To find an existing graph file for the parameter &lt;GRAPH&gt; use adtf_config_tool.exe &lt;session&gt; objects.
+        Than define the &lt;COMPONENT_TYPE&gt; which you want to add to the graph. Possible values are:
+        <ul>
+            <li>samplestream</li>
+            <li>filter</li>
+            <li>activerunner</li>
+            <li>sink</li>
+            <li>source</li>
+            <li>bindingproxy</li>
+        </ul>
+        and the &lt;CLASS_ID&gt; of the componet (e.g. <code>default_sample_stream.streaming.adtf.cid</code>).
+        Finally choose a name for the added component in the graph, the name must be unique.
+        </ul>
+        </p>
+        <p>The following example first adds a SampleStream, second a Filter and establishes a connection beween these two components.</p>
+        <div class="alert alert-secondary">
+        <pre>
+            <code>
+adtf_config_tool.exe &lt;sessionfile/graphfile&gt; addcomponent "Playback Sample/graphs/video_visual/" samplestream default_sample_stream.streaming.adtf.cid "SampleStream"
+adtf_config_tool.exe &lt;sessionfile/graphfile&gt; addcomponent "Playback Sample/graphs/video_visual/" filter example.filter.adtf.cid "Filter"
+adtf_config_tool.exe &lt;sessionfile/graphfile&gt; connect "Playback Sample/graphs/video_visual/sample_streams/SampleStream" "Playback Sample/graphs/video_visual/filters/Filter" -input_pin=in1</code>
+        </pre>
+        </div>
+        
+        <h3>Scripting Mode</h3>
+        <p>
+            The ADTF Config Tool supports very basic scripting (see <code>-e</code> command). 
+            For more information on how to do this, please have a look at our 
+            <a href="../adtf_html/page_demo_script_config_tool_create_graph.html">Create Graph Scripting Example</a>.
+        </p>
+        
+        <h3>Where to go next?</h3>
+		<p>
+			With the <a href="tools_adtf_statusmonitor.html">ADTF Statusmonitor</a> you can receive some system information during runtime.
+		</p>
+
+        </div>
+    <!-- Optional JavaScript -->
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.11.0/umd/popper.min.js" integrity="sha384-b/U6ypiBEHpOf/4+1nzFpr53nxSS+GLCkfwBdFNTxtclqqenISfwAzpKaMNFNmj4" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/js/bootstrap.min.js" integrity="sha384-h0AbiXch4ZDo7tp9hKZ4TsHbi047NrKGLO3SEJAg45jXxnGIfYzk4Si90RDIqNm1" crossorigin="anonymous"></script>
+  
+
+  </body>
+
+</html>

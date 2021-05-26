@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- Required meta tags -->
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <meta name="description" content="This guide explains how to receive and process data in the ADTF filter graph">
+  <title>ADTF3 Guides - Data Processor</title>
+  <!-- Bootstrap CSS -->
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/css/bootstrap.min.css" integrity="sha384-/Y6pD6FV/Vv2HJnA6t+vslU6fwYXjCFtcEpHbNJ0lyAFsXTsjBbfaDjzALeQsN6M" crossorigin="anonymous">
+  <!-- Prism Syntax Highlighting CSS -->
+  <link rel="stylesheet" href="prism/css/prism.css">
+</head>
+<body>
+  <div class="container">
+    
+       <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+          <a class="navbar-brand" href="#">ADTF3 Guides</a>
+          <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+              <span class="navbar-toggler-icon"></span>
+          </button>
+          <div class="collapse navbar-collapse" id="navbarSupportedContent">
+
+          </div>
+      </nav>
+
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="index.html">Home</a></li>
+      <li class="breadcrumb-item active">Data Processor Filter Tutorial</li>
+    </ol>
+    <h2>Data Processor Filter Tutorial</h2>
+    <p>
+      This guide covers creating a first simple ADTF filter that receives and
+      processes data and logs it to the console. After reading this guide, you will:
+      <ul>
+        <li>know the structure of a simple ADTF filter</li>
+        <li>know how to create a simple ADTF filter</li>
+        <li>know how to read, modify and send data in ADTF</li>
+      </ul>
+    </p>
+    <h3>Where are we?</h3>
+    <p>
+      In the <a href="sdk_adtf_cmake_basics.html">CMake Tutorial</a> we created an empty
+      ADTF filter using CMake. We furthermore created a Visual Studio solution
+      containing our empty filter.
+    </p>
+    <h3>Create an ADTF filter project</h3>
+    <p>
+      To create a CMake based project all you have to do is provide a <code>CMakeLists.txt</code> file inside the folder where your source files are. Setting up
+      a valid <code>CMakeLists.txt</code> file includes the following steps:<br>
+      As the official CMake tutorial suggests we define a minimal version of CMake using the <code>cmake_minimum_required</code> macro. So we can make sure that
+      the installed version of CMake on the computer supports all the macros we are going to use.
+      We give the Visual Studio solution to be created a name by issuing the <code>project</code> macro with the desired name and remember the name of the filter
+      we want to create in a variable using the <code>set</code> macro. Next, we create the header and source file for the filter if they do not exist yet.<br>
+      To successfully create a new ADTF filter project we need to tell CMake where it can find the ADTF directory. We do this by using the <code>find_package</code>
+      statement which makes headers, libraries and additional CMake macros of the ADTF SDK available.<br>
+      When we build our project we want to get a shared object with a <code>.adtfplugin</code> extension because this is what we can
+      deploy to the ADTF runtime. To accomplish this we use the <code>adtf_add_filter</code> macro. The parameters of this macro are the name of the filter
+      and the source, header files of the filter.<br>
+      The macro <code>adtf_install_filter</code> adds the INSTALL project to the Visual Studio solution and copies all filter related files to the given installation
+      folder. An appropriate installation folder would be <code>src/examples/bin</code> inside an ADTF directory, because this folder is recognized by the
+      Configuration Editor so the filter will be instantly available after a restart of the Configuration Editor.<br>
+      Last but not least we have to call the<code>adtf_create_plugindescription</code>CMake function to generate an XML description of the filter
+      (For more information see <a href="tools_adtf_plugin_description_generator.html">Plugindescription Generator</a>).
+      This file tells the Configuration Editor what are the capabilities of the filter. The function uses the<code>ADTF_DIR</code>variable which
+      is one of the variable you will have to set in the CMake configure step.
+        <pre>
+          <code class="language-cmake">
+cmake_minimum_required (VERSION 3.10)
+project (DataProcessor)
+
+set (DATA_PROCESSOR_FILTER tutorial_filter_data_processor)
+
+if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/tutorial_filter_data_processor.h)
+  file(WRITE tutorial_filter_data_processor.h)
+endif()
+if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/tutorial_filter_data_processor.cpp)
+  file(WRITE tutorial_filter_data_processor.cpp)
+endif()
+
+find_package(ADTF COMPONENTS filtersdk)
+
+# Adds the data_processor_filter project to the Visual Studio solution, which when build
+# creates a shared object called data_processor_filter.adtfplugin
+adtf_add_filter(${DATA_PROCESSOR_FILTER} data_processor_filter.h data_processor_filter.cpp)
+
+# Adds the INSTALL project to the Visual Studio solution, which when build
+# copies our filter to the subdirectory given as the second argument into ${CMAKE_INSTALL_PREFIX}
+adtf_install_filter(${DATA_PROCESSOR_FILTER} src/examples/bin)
+
+# Generate a plugindescription for our filter
+adtf_create_plugindescription(TARGET ${DATA_PROCESSOR_FILTER} PLUGIN_SUBDIR "src/examples/bin")
+			</code>
+        </pre>
+      </p>
+
+      <p>
+        Now use the CMake-GUI to fill in all the information required by CMake to create the Visual Studio solution.
+        If you need help have look on how to use the <a href="sdk_adtf_cmake_basics.html#VisualStudioSolution">CMake-GUI</a>.
+        Then open the<code>data_processor_filter</code>project in the solution explorer.
+      </p>
+
+    <h3>Now we want our filter to receive and modify data</h3>
+    <p>
+      More precisely our filter should:
+      <ul>
+        <li>
+          receive two data samples containing a velocity and a yaw rate value
+        </li>
+        <li>
+          use those values to calculate a kappa value
+        </li>
+        <li>
+          log some kappa values to the console
+        </li>
+        <li>
+          send all kappa values to a data sink
+        </li>
+      </ul>
+    </p>
+    <h3>How to create a simple data processor filter?</h3>
+    <p>
+      Open the tutorial_filter_data_processor header and source files in Visual Studio.
+      <p>
+        <figure class="figure">
+          <img src="screenshots/tutorials/filter_processor/vs_projects_explorer_processor.png" class="figure-img img-fluid rounded">
+          <figcaption class="figure-caption">Visual Studio - Solution Explorer</figcaption>
+        </figure><br>
+      </p>
+
+      <h4>The header file of the filter</h4>
+
+      <p>
+        At first we ensure there is just a single <code>tutorial_filter_header_file.h</code> header file.
+      </p>
+            <pre>
+              <code class="language-cpp">
+/**
+ *
+ * ADTF Tutorial filter for data processing
+ *
+ */
+#pragma once
+
+// Include all necessary headers from the ADTF SDK
+#include &lt;adtffiltersdk/adtf_filtersdk.h&gt;
+
+// For simplicity use the necessary namespaces
+using namespace adtf::util;
+using namespace adtf::ucom;
+using namespace adtf::base;
+using namespace adtf::streaming;
+using namespace adtf::mediadescription;
+using namespace adtf::filter;
+
+// Now we declare a new class cTutorialFilterDataProcessor that
+// inherits from cFilter. This will be our Tutorial Filter.
+class cTutorialFilterDataProcessor: public cFilter
+{
+public:
+    // Inside the class declaration we use an ADTF macro to enable correct treatment
+    // of class identifier and class name by IClassInfo and the class factories.
+    ADTF_CLASS_ID_NAME(cTutorialFilterDataProcessor,
+                       &quot;tutorial_data_processor.filter.adtf_guides.cid&quot;,
+                       &quot;Tutorial Data Processor&quot;);
+
+public:
+    // We implement the constructor where we create our Pins.
+    cTutorialFilterDataProcessor();
+
+    // We override the ProcessInput method, that we configure to be called each time a trigger occures via one input Pin.
+    tResult ProcessInput(tNanoSeconds tmTrigger, ISampleReader* pReader) override;
+
+private:
+    ///Readers to read data samples from our input Pins.
+    ISampleReader* m_pVelocityReader;
+    ISampleReader* m_pYawRateReader;
+
+    ///Writer to write data samples to out output Pin.
+    ISampleWriter* m_pKappaWriter;
+};
+
+              </code>
+            </pre>
+          </p>
+
+
+          <h4>The source file of the filter</h4>
+          <p>
+            We declared the necessary functions in the header file. Now we need to
+            implement them in the <code>tutorial_filter_data_processor.cpp</code> source
+            file.<br>            
+            <div class="alert alert-info" role="alert">
+              In the <a href="tutorial_filter_generator.html">Filter Generator Tutorial
+              </a> we will use the same stream types to generate data samples.
+            </div><div class="alert alert-info" role="alert">
+              For further information according media description and the data definition
+              language have a look at <a href="media_description.html">Media Description</a>
+              and <a href="ddl_library.html">Data Definition Language</a>.
+            </div>
+          </p>
+                    <pre>
+                      <code class="language-cpp">
+/*
+ *
+ * ADTF Tutorial Filter for data processing
+ *
+ */
+#include &quot;tutorial_filter_data_processor.h&quot;
+
+// The code behind the macro creates a plugin and the main entries to the plugin DLL or shared object.
+// The cTutorialFilterDataProcessor class will be available through the plugins class factory.
+ADTF_PLUGIN(&quot;ADTF Tutorial Filter Data Processor Plugin&quot;, cTutorialFilterDataProcessor);
+
+cTutorialFilterDataProcessor::cTutorialFilterDataProcessor()
+{
+    // create our inputs
+    m_pVelocityReader = CreateInputPin(&quot;velocity&quot;, stream_type_plain&lt;tFloat32&gt;());
+    // mind the third parameter which disables trigger forwarding from this input pin to our ProcessInput method.
+    m_pYawRateReader = CreateInputPin(&quot;yawrate&quot;, stream_type_plain&lt;tFloat32&gt;(), tFalse);
+
+    // and our output
+    m_pKappaWriter = CreateOutputPin(&quot;kappa&quot;, stream_type_plain&lt;tFloat32&gt;());
+}
+
+// This function will be executed each time a trigger occurs via the &quot;velocity&quot; input Pin
+// We have also enabled Trigger forwarding from the &quot;velocity&quot; pin to &quot;kappa&quot;.
+// So after this method has finished, the trigger will be forwarded via the output Pin and
+// all connected Filters will get a chance to handle to it.
+tResult cTutorialFilterDataProcessor::ProcessInput(tNanoSeconds /*tmTrigger*/,
+                                                   ISampleReader* /*pReader*/)
+{
+    // First of all get the last available yaw rate sample
+    object_ptr&lt;const ISample&gt; pYawRateSample;
+    if (IS_OK(m_pYawRateReader-&gt;GetLastSample(pYawRateSample)))
+    {
+        // We use the sample_data template to access the data stored within the sample
+        // This behaves just like a tFloat32
+        sample_data&lt;tFloat32&gt; fYawRate(pYawRateSample);
+
+        // Then we iterate over all available velocity samples
+        object_ptr&lt;const ISample&gt; pVelocitySample;
+        while (IS_OK(m_pVelocityReader-&gt;GetNextSample(pVelocitySample)))
+        {
+            // Once again use sample_data to access the data.
+            sample_data&lt;tFloat32&gt; fVelocity(pVelocitySample);
+
+            // And keep us informed.
+            LOG_INFO(&quot;Received fVelocity: %f, fYawRate: %f&quot;,
+                     static_cast&lt;tFloat32&gt;(fVelocity),
+                     static_cast&lt;tFloat32&gt;(fYawRate));
+
+            // To create output data use the output_sample_data template
+            // This will handle sample allocation for you and you can use it just
+            // like its template parameter type.
+            output_sample_data&lt;tFloat32&gt; fKappa(fVelocity.GetTimeNs());
+
+            // Perform our sophisticated calculation.
+            fKappa = fYawRate / fVelocity;
+
+            // Write it to the connected Sample Stream.
+            // Do not call any methods of output_sample_data after you have called Release() which
+            // hands over the sample instance.
+            m_pKappaWriter-&gt;Write(fKappa.Release());            
+        }
+    }
+
+    RETURN_NOERROR;
+}
+
+                      </code>
+                    </pre>
+                  </p>
+                  <p>
+                    Finally we need to build the Project.
+                  </p>
+                  <p>
+                    Whats missing right now is the data to process. We need to
+                    create a data source.
+                  </p>
+                  <h3>Where to go next?</h3>
+                  <p>
+                    Have a look at the <a href="tutorial_filter_generator.html">Filter
+                    Generator Tutorial</a> to learn how to create a simple filter that
+                    generates and sends data in ADTF.
+                    </p>
+
+        </div>
+                  <!-- Optional JavaScript -->
+                  <!-- jQuery first, then Popper.js, then Bootstrap JS, then Prism.js-->
+                  <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+                  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.11.0/umd/popper.min.js" integrity="sha384-b/U6ypiBEHpOf/4+1nzFpr53nxSS+GLCkfwBdFNTxtclqqenISfwAzpKaMNFNmj4" crossorigin="anonymous"></script>
+                  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/js/bootstrap.min.js" integrity="sha384-h0AbiXch4ZDo7tp9hKZ4TsHbi047NrKGLO3SEJAg45jXxnGIfYzk4Si90RDIqNm1" crossorigin="anonymous"></script>
+                  <script src="prism/js/prism.js"></script>
+                
+
+  </body>
+
+                </html>

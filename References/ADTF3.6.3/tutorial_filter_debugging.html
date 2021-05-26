@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- Required meta tags -->
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <meta name="description" content="This guide explains how to debug an ADTF filter with Microsoft Visual Studio">
+  <title>ADTF3 Guides - Filter Debugging Tutorial</title>
+  <!-- Bootstrap CSS -->
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/css/bootstrap.min.css" integrity="sha384-/Y6pD6FV/Vv2HJnA6t+vslU6fwYXjCFtcEpHbNJ0lyAFsXTsjBbfaDjzALeQsN6M" crossorigin="anonymous">
+  <!-- Prism Syntax Highlighting CSS -->
+  <link rel="stylesheet" href="prism/css/prism.css">
+</head>
+<body>
+  <div class="container">
+    
+       <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+          <a class="navbar-brand" href="#">ADTF3 Guides</a>
+          <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+              <span class="navbar-toggler-icon"></span>
+          </button>
+          <div class="collapse navbar-collapse" id="navbarSupportedContent">
+
+          </div>
+      </nav>
+
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="index.html">Home</a></li>
+      <li class="breadcrumb-item active">Filter Debugging Tutorial</li>
+    </ol>
+    <h2>Filter Debugging Tutorial</h2>
+    <p>
+      This guide covers debugging ADTF filters in Visual Studio. After reading this guide, you will know:
+      <ul>
+        <li>which tools you need to start in which order</li>
+        <li>how to debug an ADTF plugin (e.g. a filter)</li>
+      </ul>
+    </p>
+    <h3>Where are we?</h3>
+    <p>
+      In the <a href="tutorial_filter_generator.html">Data Generator Filter Tutorial</a>
+      we created a filter to generate and send data samples.
+      In the <a href="tutorial_filter_generator.html">Data Processor Filter Tutorial</a>
+      we created a filter that receives data samples and uses them
+      to calculate a new data sample.
+      In the <a href="tutorial_adtf_project.html">ADTF Project Tutorial</a> we created a project with the Configuration Editor.
+      The project contains a session which you can start using the <a href="tools_adtf_launcher.html#run_session">ADTF Launcher</a>.
+      The session references a graph file which contains a filter graph that makes use of our two new filters.
+      Now we want to debug our filters in Visual Studio.
+    </p>
+    <h3>How to debug a filter?</h3>
+    <p>
+      Open the Visual Studio solution containing the filter you want to debug and
+      open the Visual Studio <code>Solution Explorer</code>.
+    </p>
+
+    <div class="alert alert-info" role="alert">
+      Use <code>Strg + Alt + L</code> to open the Solution Explorer.
+    </div>
+
+    <p>
+      Find the filter that you want to debug
+      and open its properties by right clicking on the project.
+      For example the <code>tutorial_filter_data_generator</code>.<br>
+      We need to edit <code>Command</code> and <code>Command Arguments</code>
+      in <code>Configuration Properties->Debugging</code>
+    </p>
+
+    <figure class="figure">
+      <img src="screenshots/tutorials/filter_debugging/vs_debugging_setup.png" class="figure-img img-fluid rounded">
+      <figcaption class="figure-caption">Debugging setup</figcaption>
+    </figure><br>
+
+    <p>
+    In <code>Command</code> we specify the path of the program to execute when
+    debugging this filter. We want to run our previously created session and
+    therefore need to start the <code>adtf_launcher</code> located in:<br>
+    <code>"ADTF_INSTALL_DIRECTORY\bin\adtf_launcher.exe"</code>.
+    </p>
+    
+    <p>
+      As <code>Command Arguments</code> we use:
+      <ul>
+        <li>
+          --console <br>
+          to launch a console that shows the data we log
+        </li>
+        <li>
+          --run <br>
+          to set the session's runlevel to 5 (running)
+        </li>
+        <li>
+          --session "ADTF_DIR\vX.X.X\src\examples\ADTF_Project\adtfsessions\example.adtfsession" <br>
+          to specify the adtf session we want to launch
+        </li>
+      </ul>
+    </p>
+
+    <br>
+    <figure class="figure">
+      <img src="screenshots/tutorials/filter_debugging/vs_debugging_setup_ready.png" class="figure-img img-fluid rounded">
+      <figcaption class="figure-caption">Example debugging setup</figcaption>
+    </figure>
+    <br>
+    <br>
+
+
+    <p>
+      Finally we need to set our project as "Startup Project" in the <code>Solution Explorer</code>
+      and set a break point somewhere in our filter code.
+      Now we can start the <code>Local Windows Debugger</code> and debug our filter.
+    </p>
+
+    <figure class="figure">
+      <img src="screenshots/tutorials/filter_debugging/vs_local_debugger.png" class="figure-img img-fluid rounded">
+      <figcaption class="figure-caption">Local Windows Debugger</figcaption>
+    </figure>
+    <br>
+
+    <p>
+      We can edit our session in the <a href="tools_adtf_configuration_editor.html">Configuration Editor</a>
+      and see the filter's behaviour change when we <strong>restart</strong> the debugger.
+      For example if we change the <code>velocity_change_rate</code> property of the
+      <code>Tutorial Filter Data Generator 1</code> object to 3, the console
+      ouput changes.
+    </p>
+
+    <div class="alert alert-warning" role="alert">
+      Remember to save session changes using <code>Strg + S</code> in the <a href="tools_adtf_configuration_editor.html">Configuration Editor</a>
+      and restart the debugger. Otherwise changes won't be recognized.
+    </div>
+    
+    <p>
+      Alternatively, we can run an ADTF session using the Configuration Editor and use Visual Studio to attach to the process and debug it.
+      To do so, open the process dialog in <strong>Debug/Attach</strong> and choose the <code>adtf_launcher.exe</code> process. 
+    </p>
+
+    <figure class="figure">
+      <img src="screenshots/tutorials/filter_debugging/vs_attach_process.png" class="figure-img img-fluid rounded">
+      <figcaption class="figure-caption">Local Windows Debugger</figcaption>
+    </figure>
+    <br>
+
+    <h3>Where to go next?</h3>
+    <p>
+      Have a look at the <a href="tutorial_filter_signal.html">Signal Provider Filter</a>
+      to see how to create signals and display them in a signal view.
+    </p>
+
+    </div>
+  <!-- Optional JavaScript -->
+  <!-- jQuery first, then Popper.js, then Bootstrap JS, then Prism.js-->
+  <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.11.0/umd/popper.min.js" integrity="sha384-b/U6ypiBEHpOf/4+1nzFpr53nxSS+GLCkfwBdFNTxtclqqenISfwAzpKaMNFNmj4" crossorigin="anonymous"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/js/bootstrap.min.js" integrity="sha384-h0AbiXch4ZDo7tp9hKZ4TsHbi047NrKGLO3SEJAg45jXxnGIfYzk4Si90RDIqNm1" crossorigin="anonymous"></script>
+  <script src="prism/js/prism.js"></script>
+
+
+  </body>
+
+</html>

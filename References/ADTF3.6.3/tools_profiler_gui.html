@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+	<meta name="description" content="This guide explains how to use the Profiling GUI">
+	<title>ADTF3 Guides - Profiling GUI</title>
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/css/bootstrap.min.css" integrity="sha384-/Y6pD6FV/Vv2HJnA6t+vslU6fwYXjCFtcEpHbNJ0lyAFsXTsjBbfaDjzALeQsN6M" crossorigin="anonymous">
+  </head>
+  <body>
+	<div class="container">
+		
+       <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+          <a class="navbar-brand" href="#">ADTF3 Guides</a>
+          <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+              <span class="navbar-toggler-icon"></span>
+          </button>
+          <div class="collapse navbar-collapse" id="navbarSupportedContent">
+
+          </div>
+      </nav>
+
+		<ol class="breadcrumb">
+			<li class="breadcrumb-item"><a href="index.html">Home</a></li>
+			<li class="breadcrumb-item active">Profiling GUI</li>
+		</ol>
+		
+        <h2><img src="logos/profiler_gui.png" width="48" height="48"> Profiler GUI</h2>
+        
+        <p>
+            Since ADTF version <span class="badge badge-secondary">3.3.0</span> ADTF3 comes with built-in profiling 
+            support based upon <a href="https://github.com/yse/easy_profiler">easy_profiler</a>. To make use of it 
+            and analyue your instance, threads and blocks, the code must be instrumented.
+        </p>
+        
+        <h3>How to instrument my code for profiling?</h3>
+        
+        <p>
+            To add profiling blocks to your own code, just <code>#include &lt;easy/profiler.h&gt;</code> 
+            and use the supplied macros from easy_profiler.
+            For example just use the <code>EASY_FUNCTION()</code> macro  in each of your functions you want to profile.
+        </p>
+        <p>
+            For a more in-depth documentation take a look at https://github.com/yse/easy_profiler.
+        </p>
+
+        <h3>Capture Profiling Data</h3>
+        <p>
+            The ADTF SDKs and Services are already instrumented so you can start profiling right away. 
+            <div class="alert alert-secondary" >
+            <pre><code>adtf_launcher --profiler</code></pre>
+            </div>
+            For more options use
+            <div class="alert alert-secondary" >
+            <pre><code>adtf_launcher --help</code></pre>
+            </div>
+            regarding profiling support.
+        </p>
+        <p>        
+            You can now launch the <code>profiler_gui.exe</code> executable located in the <code>bin</code> folder of your ADTF delivery. 
+            Click the connect button and check the available profiling blocks with the help of the according button in the toolbar. 
+            There you can select which blocks you want to record, but most of the time you can just leave them all enabled. 
+            Make sure the ADTF session is doing whatever you want to profile and then hit the Capture button in the toolbar. 
+            Press stop when you have collected enough data.
+            
+            <div class="alert alert-warning" >
+                We recommend to use the delivered <code>.bat</code> (Windows) / <code>.sh</code> (Linux) files 
+                to start. The Profiling GUI needs to know where the Qt delivery is located, which will be set 
+                by these scripts.
+            </div>
+        </p>
+        
+        <h3>Analyse Profiling Data</h3>
+        
+        <p>
+            The following screenshot shows a profiling session of the example session Demo Standard Filters Session:
+            <figure class="figure">
+			<img src="screenshots/tools/profiler_gui/profiling_analysis.png" class="figure-img img-fluid rounded">
+			<figcaption class="figure-caption">Profiler GUI</figcaption>
+            </figure>
+            The upper bar graph shows all threads and their executed blocks. 
+            You can select a time range with pressed right mouse-button and get detailed information in the lower tree view. 
+            Clicking and hovering the mouse over a block will give you a pop-up with detailed statistics. 
+            The bar graph in the center will then show you the execution time over the whole capture period, 
+            there you can spot any spikes easily.
+        </p>
+        <p>
+            In our example we can observe that the timer_runner first executes the trigger function of 
+            <span class="badge badge-light">Demo Time Triggered Filter 2</span> then the trigger function of <span class="badge badge-light">Demo Time Trigger 1</span> followed 
+            by the execution of the trigger function of <span class="badge badge-light">Demo Data Trigger</span>.
+        </p>
+        <p>
+            When taking a look at the thread runner we see that the trigger function of the <span class="badge badge-light">Demo Thread Triggered Filter</span> 
+            is executed in a busy loop fashion. Right after the <span class="badge badge-light">Demo Data Trigger</span> has processed its output we see an increase 
+            in the execution time on this thread as well, as this trigger function is waiting for some data to be available.
+        </p>
+        
+        <h3>Where to go next?</h3>
+        <p>
+            If not already done, you should have a valid license to use our tools and framework - for that, use the <a href="tools_licenseviewer.html">License Viewer</a> to get it.
+        </p>
+
+        </div>
+    <!-- Optional JavaScript -->
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.11.0/umd/popper.min.js" integrity="sha384-b/U6ypiBEHpOf/4+1nzFpr53nxSS+GLCkfwBdFNTxtclqqenISfwAzpKaMNFNmj4" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/js/bootstrap.min.js" integrity="sha384-h0AbiXch4ZDo7tp9hKZ4TsHbi047NrKGLO3SEJAg45jXxnGIfYzk4Si90RDIqNm1" crossorigin="anonymous"></script>
+  
+
+  </body>
+
+</html>

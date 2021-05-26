@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+	<meta name="description" content="This guide explains how to use the command line based ADTF Control">
+	<title>ADTF3 Guides - ADTF Control</title>
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/css/bootstrap.min.css" integrity="sha384-/Y6pD6FV/Vv2HJnA6t+vslU6fwYXjCFtcEpHbNJ0lyAFsXTsjBbfaDjzALeQsN6M" crossorigin="anonymous">
+	<link rel="stylesheet" href="font-awesome/css/font-awesome.min.css">
+  </head>
+  <body>
+	<div class="container">
+		
+       <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+          <a class="navbar-brand" href="#">ADTF3 Guides</a>
+          <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+              <span class="navbar-toggler-icon"></span>
+          </button>
+          <div class="collapse navbar-collapse" id="navbarSupportedContent">
+
+          </div>
+      </nav>
+
+		<ol class="breadcrumb">
+			<li class="breadcrumb-item"><a href="index.html">Home</a></li>
+			<li class="breadcrumb-item active">ADTF Control</li>
+		</ol>
+        
+		<h2><img src="logos/adtf_control.png" width="48" height="48"> The ADTF Control</h2>
+		
+        <p>
+			This guide covers the control commandline tool. After reading this guide, you will know:
+			<ul>
+				<li>What the control is and what it does</li>
+				<li>How to operate the control</li>
+			</ul>
+		</p>
+        
+        <h3>Some basics</h3>
+        <p>
+            ADTF Control can be used in two ways:
+            <ul>
+                <li>
+                    <b>Interactive Mode</b> - As soon as you type <code>adtf_control.exe -c</code> into a console followed by <kbd>Enter</kbd>
+                    (presumed there is an ADTF launcher you can connect to) you are in interactive mode where you can issue ADTF commands in a
+                    manner known as read–eval–print loop (REPL).
+                </li>
+                <li>
+                    <b>Scripting Mode</b> - In this mode you specify the commands you want to issue
+                    in a file (e.g. commands.txt) and type <code>adtf_control.exe -e exec commands.txt</code>.
+                </li>
+            </ul>
+        </p>
+        
+		<h3>Establish a connection</h3>
+		<p>
+            You can imagine the control as a kind of generic remote control, like the one you are using for your TV
+            but instead of controlling a TV you control an ADTF system by sending specific commands. Depending on where
+            the ADTF Launcher was started, this may be a real remote communication over a network.
+            Type <code>adtf_control.exe --help</code> into a console to get an idea how to invoke the ADTF Control:
+		</p>
+        <div class="alert alert-secondary" role="alert">
+			<pre>
+				<code>
+usage:
+  adtf_control [&lt;scriptfile&gt;] options
+
+where options are:
+  -?, -h, --help                                   display usage information
+  --version                                        Print the version information and quit.
+  -c                                               Connect to an ADTF instance on the default URL ('http://localhost:
+                                                   8000').
+  -l, --launch &lt;adtfsessionfile|adtfsystemfile&gt;    Launch an ADTF system with the given session or system file.
+  --launcher &lt;launcher&gt;                            Use the given launcher. If not specified the first one in the
+                                                   adtf_control.adtfsettings file will be used.
+  -r, --run                                        If used in conjunction with --launch, will pass the --run flag on
+                                                   to the launcher.
+  --url &lt;url&gt;                                      Connect to an ADTF system using the given URL for RPC
+                                                   communication If used in conjunction with '-l' the URL will be
+                                                   passed on to the launched ADTF system.
+  --settings &lt;adtfsettingsfile&gt;                    Load custom adtfsettings file. If not specified, ADTF Control will
+                                                   search for adtf_control.adtfsettings in Working Directory,
+                                                   afterwards in &lt;ADTF_DIR&gt;/settings.
+  --console                                        Will forward the --console flag to the launcher.
+  -e                                               Execute a command and quit. All arguments following will be
+                                                   interpreted as the command.
+    
+    </code>
+			</pre>
+        </div>
+        
+        <p>
+            To connect the control with an already running ADTF system use this command:
+            <div class="alert alert-secondary" role="alert">
+                <pre><code>adtf_control.exe -c</code></pre>
+            </div>
+        </p>
+
+        <p>
+            To start an ADTF system implicitly and connect to it, supply the <code>--launch "path\to\session\file"</code> parameter with
+            a session file to load. To get the started system into runlevel <span class="badge badge-secondary">Running</span>
+            add the <code>--run</code> parameter. To see log messages in the console use the <code>--console</code> parameter.
+        </p>
+
+		<div class="alert alert-secondary" role="alert">
+			<pre><code>
+adtf_control.exe --launch "..\src\examples\projects\ADTF_Project\adtfsessions\demo_playback.adtfsession" --run --console</code></pre>
+        </div>
+        <p>
+            As you can see, this call is very similar to the launcher call that starts an ADTF system from the previous chapter.
+        </p>
+
+		<h3>Available commands</h3>
+		<p>
+            As soon as you are connected, type <code>help</code> to see an overview of all commands you can send to the ADTF system.
+            ADTF Control also provides auto-completion for available commands and arguments.
+        </p>
+        
+        <div class="alert alert-secondary" role="alert">
+			<pre>
+                <code>
+*******************************************************************************
+ADTF - Automotive Data and Time-Triggered Framework
+*******************************************************************************
+
+  * WELCOME TO ADTF Control *
+
+    use 'help' to see available commands
+    To connect to an existing ADTF System Instance use 'connect &lt;url&gt;'
+    To launch a new ADTF System Instance use 'launch &lt;adtfsession&gt; &lt;url&gt;'
+       The default url is 'http://localhost:8000''
+
+*******************************************************************************
+adtf&gt; help
+
+Available commands by groups:
+
+CLOCK:
+        adtftime
+        clocks
+        streamtime
+
+COMMON:
+        connect [&lt;URL&gt;]
+        disconnect
+        exec &lt;SCRIPT FILE&gt;
+        help [&lt;COMMAND_NAME&gt;]
+        launch &lt;FILE&gt; [--control-url &lt;URL&gt;] [--console] [-a] [--launcher &lt;LAUNCHER&gt;]
+        quit
+        shutdown
+        sleep &lt;DURATION&gt;
+        squit
+        workingdir [&lt;DIRECTORY_PATH&gt;]
+
+EVENTS:
+        createeventbuffer &lt;SESSION_OBJECT&gt; &lt;EVENT_TYPE&gt;
+        createeventbufferraw &lt;SESSION_OBJECT&gt; &lt;STRUCT_NAME&gt; &lt;STRUCT_DDL&gt;
+        events &lt;BUFFER ID&gt;
+        releasealleventbuffers
+        releaseeventbuffer &lt;BUFFER_ID&gt;
+        waitevent &lt;BUFFER ID&gt; [&lt;EXPECTED VALUE&gt;] [&lt;EXPECTED VALUE INDEX&gt;] [&lt;POLL INTERVAL&gt;] [&lt;TIMEOUT&gt;]
+
+GRAPH:
+        loadgraph &lt;FILE&gt;
+        loadgraphproperties &lt;FILE&gt;
+
+PLAYBACK:
+        close
+        extract &lt;FILE&gt; [&lt;FILE&gt;]... &lt;DESTINATION DIR&gt;
+        loopmode [&lt;MODE&gt;]
+        markers
+        open &lt;FILE&gt; [&lt;FILE&gt;]...
+        pause
+        play
+        playbackfiles
+        playbackspeed [&lt;SPEED&gt;]
+        playbackstate
+        playbacktime
+        seek &lt;TIMESTAMP&gt;
+        seekchunk &lt;CHUNK_INDEX&gt;
+        seekmarker &lt;NAME&gt; [&lt;OCCURENCE&gt;]
+        seeknext [&lt;NAME&gt;] [&lt;COUNT&gt;]
+        seekprev [&lt;NAME&gt;] [&lt;COUNT&gt;]
+        step [&lt;COUNT&gt;] [--samples|--types|--triggers] [--do-not-wait] [--backwards]
+
+RECORDING:
+        addmarker [&lt;RECORDER_ID&gt;] [&lt;TIME&gt;] [&lt;NAME&gt;]
+        drophistory [&lt;RECORDER_ID&gt;]
+        recorderids
+        splitrecording [&lt;RECORDER_ID&gt;] [&lt;FILE&gt;]
+        startrecording [&lt;RECORDER_ID&gt;] [&lt;FILE&gt;]
+        stoprecording [&lt;RECORDER_ID&gt;] [&lt;FILE&gt;]
+
+RPC:
+        getinterfacedefinition &lt;RPC_OBJECT&gt;
+        rpc &lt;RPC_OBJECT&gt; &lt;METHOD_NAME&gt; [&lt;PARAMETER_NAME&gt; &lt;PARAMETER_VALUE&gt;]...
+        rpcjson &lt;RPC_OBJECT&gt; &lt;METHOD_NAME&gt; &lt;JSON_PARAMETER_STRING&gt;
+        rpcmethodparams &lt;RPC_OBJECT&gt; &lt;METHOD_NAME&gt;
+        rpcmethods &lt;RPC_OBJECT&gt;
+        rpcnotify &lt;RPC_OBJECT&gt; &lt;METHOD_NAME&gt; [&lt;PARAMETER_NAME&gt; &lt;PARAMETER_VALUE&gt;]...
+        rpcnotifyjson &lt;RPC_OBJECT&gt; &lt;METHOD_NAME&gt; &lt;JSON_PARAMETER_STRING&gt;
+        rpcobjects
+
+SESSION:
+        activefiltergraph &lt;NAME&gt;
+        activestreaminggraph &lt;NAME&gt;
+        getprop &lt;SESSION_OBJECT&gt; &lt;PROPERTY_NAME&gt;
+        kernelobjects
+        listprops &lt;SESSION_OBJECT&gt;
+        sessionname
+        sessionobjects
+        setprop &lt;SESSION_OBJECT&gt; &lt;PROPERTY_NAME&gt; &lt;PROPERTY_VALUE&gt;
+
+SYSTEM:
+        info
+        isalive
+        processid
+        runlevel [&lt;RUNLEVEL&gt;]
+        systemstatus [--xml] [-b]
+
+TOOLS:
+        launchers
+        logview [&lt;URL&gt;]
+        profiler
+        statusmonitor [&lt;URL&gt;]
+
+Note: For a detailed command description use 'help &lt;command&gt;'
+                </code>
+            </pre>
+        </div>
+
+        <p>
+            For more details about a certain command type <code>help &lt;command&gt;</code>, for example:
+        </p>
+        
+        <div class="alert alert-secondary" role="alert">
+			<pre>
+                <code>
+adtf&gt; help setprop
+SYNOPSIS:
+
+        setprop &lt;SESSION_OBJECT&gt; &lt;PROPERTY_NAME&gt; &lt;PROPERTY_VALUE&gt;
+
+DESCRIPTION:
+
+Sets the value of a given property for a specific session object.
+                </code>
+            </pre>
+        </div>
+
+        <h3>Configuring different Launchers</h3>
+        <p>
+            The ADTF Control has support to configure different launcher commands that can be used either with
+            the <code>launch</code> command or the <code>--launcher</code> command line argument. Let's say you
+            want to do some profiling, you can enable it by using a different ADTF Launcher:
+            <code>adtf_control.exe --launcher adtf_profiling_enabled</code>. All available launchers are defined
+            in the configuration file <code>adtf_control.adtfsettings</code>.
+        </p>
+        <p>
+            The ADTF Control returns the following exit codes:
+            <ul>
+                <li>0 - The execution was successful</li>
+                <li>1 - The execution of the command returned an error</li>
+                <li>2 - The command was not found</li>
+            </ul>
+        </p>
+
+        <h3>Scripting Mode</h3>
+        <p>
+            The ADTF Control supports very basic scripting. You can create a file (e.g. commands.txt) where each line contains a command:
+            <div class="alert alert-secondary" role="alert">
+                <pre>
+<code># Comments are prefixed with a hash and
+# start at the beginning of a line
+# whitespace is ignored
+connect http://localhost:8000
+runlevel running
+sleep 10000000
+runlevel filtergraph</code>
+                </pre>
+            </div>
+            After that try to run <code>adtf_control.exe -e exec commands.txt</code>.
+            For advanced scripting please use the scripting language of your choice and execute commands via the <code>-e</code> switch. 
+            For more information on how to do this, please have a look at our 
+            <a href="../adtf_html/page_demo_script_control_playback.html">Playback Scripting Example</a>.
+        </p>
+        
+        <h3>Event Handling</h3>
+        
+        <p>
+            Due to the asynchronous nature of the RPC communication, event handling can only be performed via polling.
+            To do so, use the "createeventbuffer" and "createeventbufferraw" commands, that will create a buffer within
+            the ADTF System where the specified events will be stored until you retrieve them via the "events" command.
+            Since each event source uses its own event data structure, the structures have to be described via DDL.
+            The "createeventbuffer" command provides a few predefined definitions for convinience, please take a look
+            at the commands documentation within adtf_control. You can use the "waitevent" command to continuously poll
+            for a specific event.
+        </p>
+        
+        <h3>Where to go next?</h3>
+		<p>
+			You need more convenience? Here you go: <a href="tools_adtf_guicontrol.html">The user interface for the control</a>
+		</p>
+    
+
+        </div>
+    <!-- Optional JavaScript -->
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.11.0/umd/popper.min.js" integrity="sha384-b/U6ypiBEHpOf/4+1nzFpr53nxSS+GLCkfwBdFNTxtclqqenISfwAzpKaMNFNmj4" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/js/bootstrap.min.js" integrity="sha384-h0AbiXch4ZDo7tp9hKZ4TsHbi047NrKGLO3SEJAg45jXxnGIfYzk4Si90RDIqNm1" crossorigin="anonymous"></script>
+  
+
+  </body>
+
+</html>

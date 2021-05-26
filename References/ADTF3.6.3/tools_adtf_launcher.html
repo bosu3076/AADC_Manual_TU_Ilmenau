@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+	<meta name="description" content="This guide explains how to use the ADTF Launcher">
+	<title>ADTF3 Guides - ADTF Launcher</title>
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/css/bootstrap.min.css" integrity="sha384-/Y6pD6FV/Vv2HJnA6t+vslU6fwYXjCFtcEpHbNJ0lyAFsXTsjBbfaDjzALeQsN6M" crossorigin="anonymous">
+    <link rel="stylesheet" href="font-awesome/css/font-awesome.min.css">
+    <link rel="stylesheet" href="prism/css/prism.css">
+  </head>
+  <body>
+	<div class="container">
+		
+       <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+          <a class="navbar-brand" href="#">ADTF3 Guides</a>
+          <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+              <span class="navbar-toggler-icon"></span>
+          </button>
+          <div class="collapse navbar-collapse" id="navbarSupportedContent">
+
+          </div>
+      </nav>
+
+		<ol class="breadcrumb">
+			<li class="breadcrumb-item"><a href="index.html">Home</a></li>
+			<li class="breadcrumb-item active">ADTF Launcher</li>
+		</ol>
+        
+		<h2><img src="logos/adtf_launcher.png" width="48" height="48"> ADTF Launcher</h2>
+		
+        <p>
+			This guide covers the launcher commandline tool. After reading this guide, you will know:
+			<ul>
+				<li>What the launcher is and what it does</li>
+				<li>What files the launcher can handle</li>
+				<li>How to operate the launcher</li>
+			</ul>
+		</p>
+		<h3>Runtime</h3>
+		<p>
+            The launcher starts the ADTF runtime and therefore the main processing loop of ADTF. Typically
+            the launcher is given a session file (<code>*.adtfsession</code>) at startup time. The session
+            file in turn contains references to the data flow configuration,
+			consisting of different types of components like data sources, data filters and
+            data sinks which get bootstraped by the ADTF runtime. The runtime supports several run levels
+            where components can be started: 
+			<ol>
+				<li><span class="badge badge-secondary">System</span></li>
+				<li><span class="badge badge-secondary">Session</span></li>
+				<li><span class="badge badge-secondary">StreamingGraph</span></li>
+				<li><span class="badge badge-secondary">FilterGraph</span></li>
+				<li><span class="badge badge-secondary">Running</span></li>
+			</ol>
+			The runtime provides several default components in the system runlevel the programmer can use:
+			<ul>
+				<li>Logging System</li>
+				<li>RPC Object Registry</li>
+				<li>Session Manager</li>
+				<li>Macro Resolver</li>
+			</ul>
+		</p>
+        
+        <h3>Remote API</h3>
+        
+        <p>
+            The functionality of the ADTF Launcher is made available through a remote API. 
+            By default the ADTF Launcher opens up a RPC Port through which this API can be accessed.
+            The default URL to reach the ADTF System is <em>http://localhost:8000</em>.
+            The <a href="tools_adtf_control.html">ADTF Control</a> is able to control one instance of the ADTF Launcher.
+            To control more instances at once, please use the <a href="tools_adtf_guicontrol.html">ADTF GUI Control</a>.
+        </p>
+        
+		<h3>Getting help</h3>
+			Running <code>adtf_launcher.exe --help</code> displays this list of command line parameters:
+        </p>
+
+        <div class="alert alert-secondary" role="alert">
+<pre>
+<code>
+usage:
+  adtf_launcher  options
+
+where options are:
+  -?, -h, --help                              Display usage information
+  -v, --version                               Print the version information and quit.
+  -s, --session &lt;adtfsessionfile&gt;             Specify the ADTF Session.
+  --adtf-core-plugin &lt;adtfcorepluginfile&gt;     Specify a dedicated adtf-core-plugin to load. (default is adtf_core.
+                                              adtfplugin).
+  --system &lt;adtfsystemfile&gt;                   Specify the ADTF system configuration.
+  --system-properties &lt;adtfpropertiesfile&gt;    Specify the ADTF system properties file.
+  --graph &lt;adtfgraphfile&gt;                     Specify the ADTF graph file. (requires --system).
+  --graph-properties &lt;adtfpropertiesfile&gt;     Specify the ADTF graph properties file.
+  --active-streaming-graph &lt;graphname&gt;        Specify the active streaminggraph.
+  --active-filter-graph &lt;graphname&gt;           Specify the active filtergraph.
+  -u, --control-url &lt;url&gt;                     URL to connect to this system (defaults to 'http://localhost:8000').
+  -i, --init                                  Initialize current session.
+  -r, --run                                   Start current session.
+  -q, --quit                                  Shutdown application after reaching the end of file/playlist, the end
+                                              of a script or after stopping the configuration.
+  --quit-timeout &lt;seconds&gt;                    Shutdown the application after the specified amount of time.
+  --profiler                                  Enables the profiler.
+  --profiler-port &lt;port&gt;                      Sets the port for the remote connection to the profiler. 0 = no remote
+                                              profiling, default = 28077.
+  --profiler-dump-file &lt;filename&gt;             Enables profiling right from the start. When ADTF shuts down, profiling
+                                              data will be dumped to the given file.
+  --log-file &lt;filename&gt;                       Writes all stdout output to the given logfile. The stderr output will
+                                              be written to "&lt;LOGFILE&gt;_stderr.txt". To get both outputs in one file
+                                              use: "adtf_launcher &gt; logfile.txt 2&gt;&1"
+  --log-processing-interval &lt;microseconds&gt;    If not equal zero, log messages will be processed asynchronously at the
+                                              given interval.
+  --log-level-stdout &lt;level&gt;                  The log level limit for writing log entries to stdout (none, error,
+                                              warning, info, dump, all). default=all.
+  --log-level-stderr &lt;level&gt;                  The log level limit for writing log entries to stderr (none, error,
+                                              warning, info, dump, all). default=none.
+  --log-level-debug &lt;level&gt;                   The log level limit for writing log entries to windows debug output
+                                              (none, error, warning, info, dump, all). default=none.
+  --console                                   Windows only: Redirects stdout and stderr to a (new if needed) console
+                                              window. This does not affect whether log messages are written to stdout
+                                              or not. If you pipe the output, do not use this flag. Suppresses a dump
+                                              file creation dialog.
+  --                                          Ignore all following arguments.
+</code>
+</pre>
+    </div>
+
+    <h3 id="run_session">Load and start an ADTF Session</h3>
+	<p>
+		The following command starts the runtime, loads a graph configuration from the given session file and brings
+		the runtime into state <span class="badge badge-secondary">Running</span>. The last parameter makes the
+		log messages appear inside the console.
+		<div class="alert alert-secondary" role="alert">
+<pre>
+<code>
+    adtf_launcher.exe --session "..\src\examples\projects\ADTF_Project\adtfsessions\demo_playback.adtfsession" --run --console
+</code>
+</pre>
+		</div>
+	</p>
+    
+    <h3>Logging to File</h3>
+    
+    <p>
+        By default, ADTF Launcher starts as a background process.
+        This implies that no console output can be displayed to the user.
+        When stdout or stderr streams are needed for some reason, you have to
+        specify the output target as a redirection on command line.
+        If you want to redirect all standard outputs to logfile.txt use:
+        <code>adtf_launcher ... &gt; logfile.txt</code>
+        When standard error stream is also needed in the same file use:
+        <code>adtf_launcher ... &gt; logfile.txt 2&gt;&1</code>
+        To limit the number of (debug) output data you can specify the minimal
+        log level for stdout, stderr and debug(Visual Studio only) by parameter.
+        Valid values for log levels are [none, error, warning, info, dump, all].
+    </p>
+
+    <div class="alert alert-secondary" role="alert">
+<pre>
+<code>
+--log-level-stdout=info
+--log-level-stderr=error
+--log-level-debug=none
+</code>
+</pre>
+    </div>
+        
+        <p>
+            In time-sensitive use cases it might be helpful to write log files asynchronously 
+            e.g. every 1000 miliseconds, which you could achieve by supplying 
+            the <code style="white-space: nowrap">--log-processing-interval 1000</code> parameter.
+            Use the <code>–-console</code> parameters to write all output to the current console.
+            When no console is open a new one is generated.
+        </p>
+        
+        <div class="alert alert-warning" role="alert">
+            The <code>–-console</code> parameter is only available on Windows systems. It does not work in combination with redirection.
+        </div>
+    </p>
+    
+	<h3>Where to go next?</h3>
+	<p>
+		Have a look at the <a href="tools_adtf_control.html">Control guide</a> to learn how to send commands to the launcher.
+	</p>
+    
+
+        </div>
+    <!-- Optional JavaScript -->
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.11.0/umd/popper.min.js" integrity="sha384-b/U6ypiBEHpOf/4+1nzFpr53nxSS+GLCkfwBdFNTxtclqqenISfwAzpKaMNFNmj4" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/js/bootstrap.min.js" integrity="sha384-h0AbiXch4ZDo7tp9hKZ4TsHbi047NrKGLO3SEJAg45jXxnGIfYzk4Si90RDIqNm1" crossorigin="anonymous"></script>
+    <script src="prism/js/prism.js"></script>
+  </body>
+</html>

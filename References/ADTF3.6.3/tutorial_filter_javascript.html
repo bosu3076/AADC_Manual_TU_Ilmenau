@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="This guide explains how to wirte ADTF filter in JavaScript">
+    <title>ADTF3 Guides - Javascript Filter</title>
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/css/bootstrap.min.css" integrity="sha384-/Y6pD6FV/Vv2HJnA6t+vslU6fwYXjCFtcEpHbNJ0lyAFsXTsjBbfaDjzALeQsN6M" crossorigin="anonymous">
+	<!-- Prism Syntax Highlighting CSS -->
+	<link rel="stylesheet" href="prism/css/prism.css">
+  </head>
+  <body>
+	<div class="container">
+		
+       <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+          <a class="navbar-brand" href="#">ADTF3 Guides</a>
+          <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+              <span class="navbar-toggler-icon"></span>
+          </button>
+          <div class="collapse navbar-collapse" id="navbarSupportedContent">
+
+          </div>
+      </nav>
+
+		<ol class="breadcrumb">
+			<li class="breadcrumb-item"><a href="index.html">Home</a></li>
+			<li class="breadcrumb-item active">Javascript Filter</li>
+		</ol>
+        
+		<h2>Javascript Filter</h2>
+    
+        <p>
+            This guide covers how to do some rapid prototyping. Instead of setting up
+            a complete C++ project with CMake and Visual Studio and spending a lot of time
+            recompiling C++ code you can use a subset of the ADTF C++ API in Javascript directly.
+        </p>
+        <p>
+			After reading this guide, you will know how to:
+		<ul>
+                        <li>define stream types</li>
+			<li>read and write samples</li>
+			<li>access sample content</li>
+		</ul>
+        </p>
+        
+        <h3>The basics</h3>
+        <p>
+            The <a href="../adtf_html/page_javascript_filter.html#section_javascript_filter">ADTF JavaScript Filter</a> and 
+            the <a href="../adtf_html/page_javascript_filter.html#section_qtquick_filter">ADTF QtQuick Filter</a> provide 
+            access to ADTF Filter functionality by writing JavaScript code which can be embedded in a Filter Graph.
+            While the JavaScript Filter works synchronously in the trigger pipe, the QtQuick Filter triggers are handled
+            by the Qt GUI thread, meaning they are asynchronous.
+            Additionally, the QtQuick Filter offers an easy way to implement simple graphical user interfaces and data
+            visualization elements.
+            This tutorial focuses on the JavaScript Filter which wraps the functionality of the
+            <a href="http://doc.qt.io/qt-5/qjsengine.html">QJSEngine</a> from the Qt framework.
+        </p>
+
+<p>
+We are going to create a small session that has a <a href="../adtf_html/page_javascript_filter.html#section_javascript_filter">JavaScript Filter</a>, that processs the output of two Filters and creates Samples
+that contain data from both inputs. We visualise the output with a <a href="../adtf_html/page_demo_qtmedia_desc_display.html">Demo Qt Media Description Display</a>.
+</p>
+<figure class="figure">
+    <img src="screenshots/tutorials/filter_javascript/js_session.png" class="figure-img img-fluid rounded">
+    <figcaption class="figure-caption">Our tutorial session.</figcaption>
+</figure>
+
+ <p>
+    Open the context menu of the filter by performing a right click on the filter. Click on "Open Editor".
+    This will open the ADTF JavaScript-Editor where you can start writing JavaScript code.
+    Paste the following code and save it.
+</p>
+<pre>
+  <code class="language-javascript">
+// first we start of with creating our inputs
+var input1 = filter.createInputPin(&quot;input1&quot;)
+var input2 = filter.createInputPin(&quot;input2&quot;)
+
+// the types object offers several methods to define stream types.
+// here we use the createDefinition call were we can build our
+// output data description.
+var output_type = types.createDefinition(&quot;guide_output&quot;)
+                  .add(&quot;value_from_input1&quot;, &quot;tFloat32&quot;)
+                  .add(&quot;value_from_input2&quot;, &quot;tFloat32&quot;)
+
+// note that you can also use types.getDefinition() to retrieve a
+// media description from the Media Description Service
+
+// and create an output pin
+var output = filter.createOutputPin(&quot;output&quot;, output_type)
+
+// we connect a callback to the &quot;sample&quot; signal of the first input.
+// note that there is also a &quot;trigger&quot; signal available, there you
+// can iterate over all available samples with input1.getNextSample()
+input1.sample.connect(function(sample1)
+{
+    // we try to get the last sample from input2
+    var sample2 = input2.getLastSample()
+    if (sample2)
+    {
+        // input sample data is available in the .data object of the sample. If there is a
+        // media description available this .data object has all elements available as (sub)properties.
+        // to write data, we just create an object with all the values and pass it on.
+        // note that types are converted on-the-fly.
+        output.write(sample1.timestamp, { value_from_input1: sample1.data.sHeaderStruct.ui32HeaderVal,
+                                          value_from_input2: sample2.data.sHeaderStruct.ui32HeaderVal })
+    }
+    else
+    {
+        // there is a global &quot;log&quot; object which you can use
+        log.info(&quot;no sample from input2 available&quot;)
+    }
+})
+
+  </code>
+</pre>
+
+ <p>
+ We can then start the session and observe the output of our scripting filter:
+ </p>
+
+<figure class="figure">
+    <img src="screenshots/tutorials/filter_javascript/output.png" class="figure-img img-fluid rounded">
+    <figcaption class="figure-caption">Tutorial output</figcaption>
+</figure>
+
+<p>
+For more elaborate examples please have a look at the and <a href="../adtf_html/page_demo_javascript_sine_session.html">Demo JavaScript Sine Session</a>.
+</p>
+
+    <h3>Where to go next?</h3>
+    <p>
+      Have a look at the <a href="tutorial_filter_qtquick.html">QtQuick Filter</a> to learn how to visualize data
+      with QML and JavaScript.
+    </p>
+        </div>
+    <!-- Optional JavaScript -->
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.11.0/umd/popper.min.js" integrity="sha384-b/U6ypiBEHpOf/4+1nzFpr53nxSS+GLCkfwBdFNTxtclqqenISfwAzpKaMNFNmj4" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/js/bootstrap.min.js" integrity="sha384-h0AbiXch4ZDo7tp9hKZ4TsHbi047NrKGLO3SEJAg45jXxnGIfYzk4Si90RDIqNm1" crossorigin="anonymous"></script>
+    <script src="prism/js/prism.js"></script>
+
+
+  </body>
+
+</html>

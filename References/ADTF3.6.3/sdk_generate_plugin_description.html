@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- Required meta tags -->
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+        <meta name="description" content="This guide shows how to use Properties to define the behaviour of an ADTF Component.">
+        <title>ADTF3 Guides - Plugin Description</title>
+  <!-- Bootstrap CSS -->
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/css/bootstrap.min.css" integrity="sha384-/Y6pD6FV/Vv2HJnA6t+vslU6fwYXjCFtcEpHbNJ0lyAFsXTsjBbfaDjzALeQsN6M" crossorigin="anonymous">
+  <!-- Prism Syntax Highlighting CSS -->
+  <link rel="stylesheet" href="prism/css/prism.css">
+</head>
+<body>
+  <div class="container">
+    
+       <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+          <a class="navbar-brand" href="#">ADTF3 Guides</a>
+          <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+              <span class="navbar-toggler-icon"></span>
+          </button>
+          <div class="collapse navbar-collapse" id="navbarSupportedContent">
+
+          </div>
+      </nav>
+
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="index.html">Home</a></li>
+        <li class="breadcrumb-item active">Generate Plugin Description</li>
+      </ol>
+      
+      <h2>Generate Plugin Description</h2>
+      
+      <p>
+        This guide teaches you how to:
+        <ul>
+          <li>generate a Plugin Description for your component</li>
+          <li>which parts of the API will export which information</li>
+          <li>how integrate it in CMake</li>
+          <li>which restrictions must be handled</li>
+        </ul>
+      </p>
+
+      <h3>Basics</h3>
+      
+      <p>
+        As you might already know, we are using a <code>*.plugindescription</code> file to describe an ADTF component (e.g. Filter, Service, Streaming Source/Sink, ...) 
+        delivered within a corresponding <code>*.adtfplugin</code>. The containing information, such as for example <b>pins</b>, <b>properties</b> or <b>default runlevel</b>, will be 
+        used by <a href="intro_configuration_editor.html">ADTF Configuration Editor</a> to provide the component and its dependencies during configuration time without 
+        loading the binary itself. For more information please have a look at <a href="intro_plugin_description_gen.html">ADTF Plugin Description Generator</a>, in this guide here we will 
+        focus which part of the API will be used for creation by using CMake and the post-build generation.
+      </p>
+
+      <h3>CMake setup</h3>
+      
+      <p>
+        As you might already know from our different examples and guides, the "magic" CMake command for Plugin Description generation is called <code>adtf_create_plugindescription</code>:
+      </p>
+      
+      <p>      
+      <pre>
+          <code class="language-cmake">
+cmake_minimum_required (VERSION 3.10)
+project (filter_for_plugin_description)
+
+find_package(ADTF COMPONENTS filtersdk)
+
+# Adds the filter_for_plugin_description project to the Visual Studio solution, which when build
+# creates a shared object called filter_for_plugin_description.adtfplugin
+adtf_add_filter(filter_for_plugin_description filter_for_plugin_description.h filter_for_plugin_description.cpp)
+
+# Adds the INSTALL project to the Visual Studio solution, which when build
+# copies our filter to the subdirectory given as the second argument into ${CMAKE_INSTALL_PREFIX}
+adtf_install_filter(filter_for_plugin_description src/examples/bin)
+
+# Generate a plugindescription for our filter
+adtf_create_plugindescription(TARGET filter_for_plugin_description PLUGIN_SUBDIR "src/examples/bin")
+          </code>
+        </pre>
+
+      <h3>Generation for a Filter</h3>
+      
+      <p>
+      <ul>
+        <li>
+          So let us define a new Filter (<a href="src/filter_for_plugin_description.h">filter_for_plugin_description.h</a>):
+          <pre>
+            <code class="language-cpp">
+#pragma once
+
+// Include all necessary headers from the ADTF SDK
+#include &lt;adtffiltersdk/adtf_filtersdk.h&gt;
+
+// For simplicity use the necessary namespaces
+using namespace adtf::util;
+using namespace adtf::ucom;
+using namespace adtf::base;
+using namespace adtf::streaming;
+using namespace adtf::filter;
+
+// To implement a Filter we subclass adtf::filter::cFilter
+class cPluginDescriptionFilter: public cFilter
+{
+public:
+    
+    // If use this macro, the Class ID and Label Name will be exported:
+    //      &lt;name&gt;plugin_description_filter.filter.adtf_guides.cid&lt;/name&gt;
+    //      &lt;label&gt;Plugin Description Filter&lt;/label&gt;
+    ADTF_CLASS_ID_NAME(cPluginDescriptionFilter,
+                       &quot;plugin_description_filter.filter.adtf_guides.cid&quot;,
+                       &quot;Plugin Description Filter&quot;);
+
+    // If use this macro, the Plugin Description Generator will add required interfaces:
+    //      &lt;required_interfaces&gt;
+    //          &lt;interface_description&gt;
+    //              &lt;iid&gt;reference_clock.giant.streaming.adtf.iid&lt; / iid&gt;
+    //          &lt;/interface_description&gt;
+    //      &lt;/required_interfaces&gt;
+    ADTF_CLASS_DEPENDENCIES(REQUIRE_INTERFACE(adtf::services::IReferenceClock));
+
+public:
+    // In the constructor, the Plugin Description Generator will look for some basic plugin information, see implementation.
+    cPluginDescriptionFilter();
+
+    // If use this function, dynamic input pins will be enabled in Plugin Description
+    // node:
+    //      &lt;dynamic_input_pins&gt;true&lt;/dynamic_input_pins&gt;
+    tResult RequestDynamicInputPin(const tChar* /*strName*/,
+                                   const adtf::ucom::ant::iobject_ptr&lt;const adtf::streaming::ant::IStreamType&gt;&amp; /*pType*/) override 
+    {
+        RETURN_NOERROR;
+    };
+
+    // If use this function, dynamic output pins will be enabled in Plugin Description
+    // node:
+    //      &lt;dynamic_output_pins&gt;true&lt;/dynamic_input_pins&gt;
+    tResult RequestDynamicOutputPin(const tChar* /*strName*/,
+                                    const adtf::ucom::ant::iobject_ptr&lt;const adtf::streaming::ant::IStreamType&gt;&amp; /*pType*/) override
+    {
+        RETURN_NOERROR;
+    };
+
+    // If use this function, dynamic input binding pins will be enabled in Plugin Description
+    // node:
+    //      &lt;dynamic_input_binding_pins&gt;true&lt;/dynamic_input_binding_pins&gt;
+    tResult RequestDynamicInterfaceClient(const char* /*strName*/,
+                                          const adtf::ucom::ant::iobject_ptr&lt;const adtf::streaming::ant::IBindingType&gt;&amp; /*pType*/) override
+    {
+        RETURN_NOERROR;
+    };
+
+    // If use this function, dynamic output binding pins will be enabled in Plugin Description
+    // node:
+    //      &lt;dynamic_output_binding_pins&gt;true&lt;/dynamic_output_binding_pins&gt;
+    tResult RequestDynamicInterfaceServer(const char* /*strName*/,
+                                          const adtf::ucom::ant::iobject_ptr&lt;const adtf::streaming::ant::IBindingType&gt;&amp; /*pType*/) override
+    {
+        RETURN_NOERROR;
+    };
+
+private:
+    // Here are all the Pin Reader/Writer for our Filter
+    ISampleReader* m_pReader = nullptr;
+    ISampleWriter* m_pWriter = nullptr;
+
+    // Here are all the Property Variables for our Filter
+    property_variable&lt;tFloat64&gt; m_fFloatProperty = 3.1415;
+    property_variable&lt;cString&gt; m_strProperty = { &quot;i am a string&quot; };
+
+};
+
+            </code>
+          </pre>
+        </li>
+        <li>
+            Then let's implement it (<a href="src/filter_for_plugin_description.cpp">filter_for_plugin_description.cpp</a>):
+            <pre>
+                <code class="language-cpp">
+#include &quot;filter_for_plugin_description.h&quot;
+
+// If use this macro, the basic plugin information will be exported
+//      &lt;cache_info&gt;
+//          &lt;plugin_name&gt;Plugin Description Filter Plugin&lt;/plugin_name&gt;
+//          &lt;plugin_checksum/&gt;
+//      &lt;/cache_info&gt;
+//      &lt;debug&gt;false&lt;/debug&gt;
+//      &lt;versions&gt;
+//          &lt;version&gt;
+//              &lt;name&gt;adtf&lt;/name&gt;
+//              &lt;major&gt;3&lt;/major&gt;
+//              &lt;minor&gt;999&lt;/minor&gt;
+//              &lt;patch&gt;999&lt;/patch&gt;
+//              &lt;description&gt;TODO!&lt;/description&gt;
+//          &lt;/version&gt;
+//          &lt;version&gt;
+//              &lt;name&gt;adtf::ucom&lt;/name&gt;
+//              &lt;major&gt;3&lt;/major&gt;
+//              &lt;minor&gt;1&lt;/minor&gt;
+//              &lt;patch&gt;0&lt;/patch&gt;
+//              &lt;description&gt;TODO!&lt;/description&gt;
+//          &lt;/version&gt;
+//      &lt;/versions&gt;
+ADTF_PLUGIN(&quot;Plugin Description Filter Plugin&quot;,
+            cPluginDescriptionFilter);
+
+cPluginDescriptionFilter::cPluginDescriptionFilter()
+{
+    // This will generate the description for the pins:
+    //      &lt;pin_descriptions&gt;
+    //          &lt;pin_description&gt;
+    //              &lt;name&gt;in&lt;/name&gt;
+    //              &lt;streamtype_description&gt;
+    //                  &lt;metatype_name&gt;adtf/plaintype&lt;/metatype_name&gt;
+    //                  &lt;property_descriptions&gt;
+    //                      &lt;property_description&gt;
+    //                          &lt;name&gt;c-type&lt;/name&gt;
+    //                          &lt;type&gt;cString&lt;/type&gt;
+    //                          &lt;value&gt;FLOAT32&lt;/value&gt;
+    //                          &lt;list/&gt;
+    //                      &lt;/property_description&gt;
+    //                      &lt;property_description&gt;
+    //                          &lt;name&gt;md_definitions&lt;/name&gt;
+    //                          &lt;type&gt;cString&lt;/type&gt;
+    //                          &lt;value&gt;&amp;lt; struct name = &quot;plain&quot; alignment = &quot;1&quot; version = &quot;1&quot;&amp;gt; &amp;lt; element name = &quot;value&quot; arraysize = &quot;1&quot; type = &quot;tFloat32&quot;&amp;gt; &amp;lt; deserialized alignment = &quot;1&quot; / &amp;gt; &amp;lt; serialized bytepos = &quot;0&quot; byteorder = &quot;LE&quot; / &amp;gt; &amp;lt; / element &amp; gt; (&amp;lt; / struct&amp;gt; &lt; / value&gt;
+    //                          &lt;list/&gt;
+    //                      &lt;/property_description&gt;
+    //                      &lt;property_description&gt;
+    //                          &lt;name&gt;md_struct&lt;/name&gt;
+    //                          &lt;type&gt;cString&lt;/type&gt;
+    //                          &lt;value&gt;plain&lt;/value&gt;
+    //                          &lt;list/&gt;
+    //                      &lt;/property_description&gt;
+    //                      &lt;/property_descriptions&gt;
+    //              &lt;/streamtype_description&gt;
+    //              &lt;direction&gt;1&lt;/direction&gt;
+    //              &lt;description&gt;TODO&lt;/description&gt;
+    //          &lt;/pin_description&gt;
+    //          &lt;pin_description&gt;
+    //              &lt;name&gt;out&lt;/name&gt;
+ //              &lt;streamtype_description&gt;
+    //                  &lt;metatype_name&gt;adtf/plaintype&lt;/metatype_name&gt;
+    //                  &lt;property_descriptions&gt;
+    //                      &lt;property_description&gt;
+    //                          &lt;name&gt;c-type&lt;/name&gt;
+    //                          &lt;type&gt;cString&lt;/type&gt;
+    //                          &lt;value&gt;FLOAT32&lt;/value&gt;
+    //                          &lt;list/&gt;
+    //                      &lt;/property_description&gt;
+    //                      &lt;property_description&gt;
+    //                          &lt;name&gt;md_definitions&lt;/name&gt;
+    //                          &lt;type&gt;cString&lt;/type&gt;
+    //                          &lt;value&gt;&amp;lt; struct name = &quot;plain&quot; alignment = &quot;1&quot; version = &quot;1&quot;&amp;gt; &amp;lt; element name = &quot;value&quot; arraysize = &quot;1&quot; type = &quot;tFloat32&quot;&amp;gt; &amp;lt; deserialized alignment = &quot;1&quot; / &amp;gt; &amp;lt; serialized bytepos = &quot;0&quot; byteorder = &quot;LE&quot; / &amp;gt; &amp;lt; / element &amp; gt; (&amp;lt; / struct&amp;gt; &lt; / value&gt;
+    //                          &lt;list/&gt;
+    //                      &lt;/property_description&gt;
+    //                      &lt;property_description&gt;
+    //                          &lt;name&gt;md_struct&lt;/name&gt;
+    //                          &lt;type&gt;cString&lt;/type&gt;
+    //                          &lt;value&gt;plain&lt;/value&gt;
+    //                          &lt;list/&gt;
+    //                      &lt;/property_description&gt;
+    //                      &lt;/property_descriptions&gt;
+    //              &lt;/streamtype_description&gt;
+    //              &lt;direction&gt;1&lt;/direction&gt;
+    //              &lt;description&gt;TODO&lt;/description&gt;
+    //          &lt;/pin_description&gt;
+    //      &lt;/pin_descriptions&gt;
+    m_pReader = CreateInputPin(&quot;in&quot;, stream_type_plain&lt;tFloat32&gt;(), tTrue);
+    m_pWriter = CreateOutputPin(&quot;out&quot;, stream_type_plain&lt;tFloat32&gt;());
+
+    // This will generate the description for the properties:
+    //      &lt;property_descriptions&gt;
+    //          &lt;property_description&gt;
+    //              &lt;name&gt;float_property&lt;/name&gt;
+    //                  &lt;type&gt;tFloat64&lt;/type&gt;
+    //                  &lt;value&gt;3.141500&lt;/value&gt;
+    //                  &lt;list/&gt;
+    //          &lt;/property_description&gt;
+    //          &lt;property_description&gt;
+    //              &lt;name&gt;string_property&lt;/name&gt;
+    //              &lt;type&gt;cString&lt;/type&gt;
+    //              &lt;value&gt;i am a string&lt;/value&gt;
+    //              &lt;list/&gt;
+    //          &lt;/property_description&gt;
+    //      &lt;/property_descriptions&gt;
+    RegisterPropertyVariable(&quot;float_property&quot;, m_fFloatProperty);
+    RegisterPropertyVariable(&quot;string_property&quot;, m_strProperty);
+
+    // This will generate the description for the component:
+    //      &lt;description&gt;Use this filter to show how the plugin description works.&lt;/description&gt;
+    SetDescription(&quot;Use this filter to show how the plugin description works.&quot;);
+
+    // This will generate the description for a filter editor:
+    //  &lt;editor_descriptions&gt;
+    //      &lt;editor_description&gt;
+    //          &lt;name&gt;Edit with fancy Filter Editor&lt;/name&gt;
+    //          &lt;url&gt;fancy_filter_editor.qml&lt;/url&gt;
+    //      &lt;/editor_description&gt;
+    //  &lt;/editor_descriptions&gt;
+    SetEditor(&quot;Edit with fancy Filter Editor&quot;, &quot;fancy_filter_editor.qml&quot;);
+}
+
+
+
+            </code>
+          </pre>
+        </li>        
+      </ul>
+      </p>
+        
+      </p>
+      
+      <h3>Other Components than Filters</h3>
+      
+      <p>
+        So this is all what you have to do to create the plugin description for your filter.
+      </p>
+      <p>
+        But what if you want to implement a Streaming or System Service ? The basics like <code>&lt;plugin_name&gt;</code>, <code>&lt;version&gt;</code> and stuff follow always the same rules, the variation  
+        might appear in the component type itself. Let's have a look at it.
+      </p>
+      
+      <h4>System or UI Service</h4>
+      
+      <p>
+        The main difference is of course that a Service does not have any Pins. The rest works the same as shown in filter example above. 
+        The information will be exported under the <code>&lt;service_descriptions&gt;</code> node instead of <code>&lt;filter_descriptions&gt;</code>.
+      </p>
+      <p>
+        Besides required interfaces a service often provides one or more interface. To do so, have a look again at the filter example and the macro <code>ADTF_CLASS_DEPENDENCIES</code>, 
+        but use it now with <code>PROVIDE_INTERFACE</code> instead of <code>REQUIRE_INTERFACE</code>. This works also in combination, for example:
+      </p>
+      <p>
+        <pre>
+            <code class="language-cpp">
+// If use this macro, the Plugin Description Generator will add provided and required interfaces:
+//      &lt;provided_interfaces&gt;
+//          &lt;interface_description>&gt;
+//              &lt;iid&gt;myinterface.ant.services.adtf.iid&lt;/iid&gt;
+//          &lt;/interface_description&gt;
+//          &lt;interface_description&gt;
+//              &lt;iid&gt;myinterface.bat.services.adtf.iid&lt;/iid&gt;
+//          &lt;/interface_description&gt;
+//          &lt;interface_description&gt;
+//              &lt;iid&gt;myinterface.elasto.services.adtf.iid&lt;/iid&gt;
+//          &lt;/interface_description&gt;
+//      &lt;/provided_interfaces&gt;
+//      &lt;required_interfaces&gt;
+//          &lt;interface_description&gt;
+//              &lt;iid&gt;reference_clock.giant.streaming.adtf.iid&lt;/iid&gt;
+//          &lt;/interface_description&gt;
+//          &lt;interface_description&gt;
+//              &lt;iid&gt;kernel.devil.services.adtf.iid&lt;/iid&gt;
+//          &lt;/interface_description&gt;
+//      &lt;/required_interfaces&gt;
+ADTF_CLASS_DEPENDENCIES(REQUIRE_INTERFACE(adtf::services::IReferenceClock),
+                        REQUIRE_INTERFACE(adtf::services::IKernel),
+                        PROVIDE_INTERFACE(adtf::services::ant::IMyInterface),
+                        PROVIDE_INTERFACE(adtf::services::bat::IMyInterface),
+                        PROVIDE_INTERFACE(adtf::services::elasto::IMyInterface));
+            </code>
+        </pre>
+      </p>
+      <p>
+        The second difference is the default runlevel for your System or UI Service, for that, just use 
+        <code>SetDefaultRunlevel(tInt8 nDefaultRunlevel)</code> in your constructor:
+      </p>
+      <p>
+        <pre>
+            <code class="language-cpp">
+// constructor
+cMyService::cMyService()
+{
+    // This will generate the description for the default runlevel:
+    //     &lt;runlevel&gt;session&lt;/runlevel&gt;
+    SetDefaultRunlevel(tADTFRunLevel::RL_Session);
+}
+            </code>
+        </pre>
+      </p>
+      
+      <h4>Streaming Service</h4>
+      
+      <p>
+        The generation of the Plugin Description for Streaming Services follows exactly the rules as for filters. 
+        The only difference is the node where the information will be exported, instead of <code>&lt;filter_descriptions&gt;</code> 
+        you will find the descriptions under <code>&lt;streaming_source_descriptions&gt;</code> (for Streaming Sources) and 
+        <code>&lt;streaming_sink_descriptions&gt;</code> (for Streaming Sinks).
+      </p>
+      
+      <h4>Active Runner, Sample Stream and Binding Proxies</h4>
+      
+      <p>
+        Yes, there are even more components which can be implemented by you than Filters or Streaming/System/UI Services, but this might be 
+        the minor use case for this topic. Anyway, also these components must be described to be used for example within 
+        <a href="intro_configuration_editor.html">ADTF Configuration Editor</a>, but you can treat them almost like a System Service, 
+        except the not needed default runlevel. Of course, for each type there is a specified node, the Plugin Description will be generated under 
+        <code>&lt;activerunner_descriptions&gt;</code> (for Active Runners), <code>&lt;samplestream_descriptions&gt;</code> (for Sample Streams) 
+        and last but not least <code>&lt;bindingproxy_descriptions&gt;</code> (for Binding Proxies).
+      </p>
+      
+      <h3>Restrictions</h3>
+      
+      <p>
+        The only part which has to be done manually are specific <code>&lt;platform_dependencies&gt;</code>. For this, you can use the merge option and 
+        write it into a seperate file by filling only this node.
+      </p>
+      
+      <h3>Where to go next?</h3>
+      <p>
+      Have a look at <a href="sdk_binding_server_client.html">Binding Server and Client</a>
+      to learn how to call functions from other components.
+      </p>
+      
+        </div>
+    <!-- Optional JavaScript -->
+    <!-- jQuery first, then Popper.js, then Bootstrap JS, then Prism.js-->
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.11.0/umd/popper.min.js" integrity="sha384-b/U6ypiBEHpOf/4+1nzFpr53nxSS+GLCkfwBdFNTxtclqqenISfwAzpKaMNFNmj4" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/js/bootstrap.min.js" integrity="sha384-h0AbiXch4ZDo7tp9hKZ4TsHbi047NrKGLO3SEJAg45jXxnGIfYzk4Si90RDIqNm1" crossorigin="anonymous"></script>
+    <script src="prism/js/prism.js"></script>
+  
+
+  </body>
+
+</html>
